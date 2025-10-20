@@ -2,6 +2,10 @@ from flask import Flask
 
 app = Flask(__name__)
 
-from . import files_manager
+from .blueprints.MainBlueprint import MainBlueprint
+from .blueprints.DataBlueprint import DataBlueprint
+from .blueprints.StatsBlueprint import StatsBlueprint
 
-from . import routes
+app.register_blueprint(MainBlueprint)
+app.register_blueprint(DataBlueprint)
+app.register_blueprint(StatsBlueprint)

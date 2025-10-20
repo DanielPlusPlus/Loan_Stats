@@ -1,44 +1,49 @@
+from flask import Blueprint
 from markupsafe import Markup
 
-from . import app
+from app import app
+
+MainBlueprint = Blueprint("main", __name__)
 
 METHOD_DESCRIPTIONS = {
-    "mean_endpoint": {
+    "stats.get_columns_mean": {
         "description": "Calculates the arithmetic mean (average) of the specified column and returns a JSON object.",
         "input_type": "column_name (string) in POST JSON body",
         "return_type": "JSON: {'success': True, 'result': float} or {'success': False, 'error': string}"
     },
-    "sum_endpoint": {
+    "stats.get_columns_sum": {
         "description": "Calculates the sum of all values in the specified column and returns a JSON object.",
         "input_type": "column_name (string) in POST JSON body",
         "return_type": "JSON: {'success': True, 'result': float} or {'success': False, 'error': string}"
     },
-    "quartiles_endpoint": {
-        "description": "Calculates the first, second (median), and third quartiles of the specified column and returns a JSON object.",
+    "stats.get_columns_quartiles": {
+        "description": "Calculates the first, second (median), and third quartiles of the specified column and "
+                       "returns a JSON object.",
         "input_type": "column_name (string) in POST JSON body",
-        "return_type": "JSON: {'success': True, 'result': {'Q1': float, 'Q2': float, 'Q3': float}} or {'success': False, 'error': string}"
+        "return_type": "JSON: {'success': True, 'result': {'Q1': float, 'Q2': float, 'Q3': float}} or {'success': "
+                       "False, 'error': string}"
     },
-    "median_endpoint": {
+    "stats.get_columns_median": {
         "description": "Calculates the median of the specified column and returns a JSON object.",
         "input_type": "column_name (string) in POST JSON body",
         "return_type": "JSON: {'success': True, 'result': float} or {'success': False, 'error': string}"
     },
-    "mode_endpoint": {
+    "stats.get_columns_mode": {
         "description": "Finds the mode (most frequent value) of the specified column and returns a JSON object.",
         "input_type": "column_name (string) in POST JSON body",
         "return_type": "JSON: {'success': True, 'result': float or None} or {'success': False, 'error': string}"
     },
-    "skewness_endpoint": {
+    "stats.get_columns_skewness": {
         "description": "Calculates the skewness of the specified column and returns a JSON object.",
         "input_type": "column_name (string) in POST JSON body",
         "return_type": "JSON: {'success': True, 'result': float} or {'success': False, 'error': string}"
     },
-    "kurtosis_endpoint": {
+    "stats.get_columns_kurtosis": {
         "description": "Calculates the kurtosis of the specified column and returns a JSON object.",
         "input_type": "column_name (string) in POST JSON body",
         "return_type": "JSON: {'success': True, 'result': float} or {'success': False, 'error': string}"
     },
-    "deviation_endpoint": {
+    "stats.get_columns_deviation": {
         "description": "Calculates the standard deviation of the specified column and returns a JSON object.",
         "input_type": "column_name (string) in POST JSON body",
         "return_type": "JSON: {'success': True, 'result': float} or {'success': False, 'error': string}"
@@ -75,3 +80,8 @@ def get_method_desc_html():
     html += "</ul>"
 
     return Markup(html)
+
+
+@MainBlueprint.route('/')
+def index():
+    return get_method_desc_html()
