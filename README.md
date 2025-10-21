@@ -40,7 +40,7 @@ pip install -r requirements.txt
 </p>
 
 ```bash
-	python app.py
+python app.py
 ```
 
 <p>
