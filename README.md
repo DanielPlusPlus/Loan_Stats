@@ -10,6 +10,13 @@
 	<li>NumPy: ver. 2.3.4</li>
 </ul>
 <br/>
+
+<b>Installing dependencies</b>
+<br/>
+<p>
+	To install all required libraries, make sure you are in the project directory (where the <code>requirements.txt</code> file is located) and run:
+</p>
+<br/>
 <b>
 	Frontend
 </b>
