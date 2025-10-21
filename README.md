@@ -1,4 +1,5 @@
 # SQL Generator From Diagram Python
+<p>
 <b>
 	Backend
 </b>
@@ -16,6 +17,8 @@
 <p>
 	To install all required libraries, make sure you are in the project directory (where the <code>requirements.txt</code> file is located) and run:
 </p>
+```bash
+pip install -r requirements.txt
 <br/>
 <b>
 	Frontend
