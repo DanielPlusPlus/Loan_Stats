@@ -17,18 +17,20 @@
 	To install all required libraries, make sure you are in the project directory (where the <code>requirements.txt</code> file is located) and run:
 </p>
 
-bash:
-	pip install -r requirements.txt
+```bash
+pip install -r requirements.txt
+```
 
 <p>
 	It is recommended to use a virtual environment (<code>venv</code> or <code>virtualenv</code>) before installing dependencies:
 </p>
 
-bash:
-	python -m venv venv
-	source venv/bin/activate        # Linux / macOS
-	venv\Scripts\activate           # Windows
-	pip install -r requirements.txt
+```bash
+python -m venv venv
+source venv/bin/activate        # Linux / macOS
+venv\Scripts\activate           # Windows
+pip install -r requirements.txt
+```
 
 <br/>
 <b>Running the Flask server</b>
@@ -37,15 +39,17 @@ bash:
 	After installing all dependencies, you can start the Flask application with:
 </p>
 
-bash:
+```bash
 	python app.py
+```
 
 <p>
 	Or, if your project uses an <code>app</code> package structure:
 </p>
 
-bash:
-	flask --app app run
+```bash
+flask --app app run
+```
 
 <p>
 	By default, the Flask development server will be available at:
@@ -57,8 +61,9 @@ http://127.0.0.1:5000
 	To run the app in debug mode (with automatic reload on code changes):
 </p>
 
-bash:
-	flask --app app run --debug
+```bash
+flask --app app run --debug
+```
 
 <br/>
 <b>
