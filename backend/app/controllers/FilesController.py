@@ -8,7 +8,7 @@ from app import app
 
 class FilesController:
     def __init__(self):
-        self.__data_path = os.path.join(app.root_path, "models", "loan_approval.csv")
+        self.__data_path = os.path.join(app.root_path, "models", "part_of_loan_approval.csv")
         self.__data = None
         self.__load_data()
 

@@ -6,6 +6,17 @@ from app import app
 MainBlueprint = Blueprint("main", __name__)
 
 METHOD_DESCRIPTIONS = {
+    "data.get_headers": {
+        "description": "Returns the list of column headers (names) available in the dataset.",
+        "input_type": "None (simple GET request)",
+        "return_type": "JSON: {'success': True, 'headers': [string, ...]} or {'success': False, 'error': string}"
+    },
+    "data.get_data": {
+        "description": "Returns a paginated portion of the dataset as JSON. Each page contains a subset of rows.",
+        "input_type": "page (integer) passed as query parameter, e.g. /data?page=1",
+        "return_type": "JSON: {'success': True, 'data': [ {...}, {...} ], 'page': int, 'total_pages': int} or "
+                       "{'success': False, 'error': string}"
+    },
     "stats.get_columns_mean": {
         "description": "Calculates the arithmetic mean (average) of the specified column and returns a JSON object.",
         "input_type": "column_name (string) in POST JSON body",
