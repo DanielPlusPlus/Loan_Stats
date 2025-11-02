@@ -73,5 +73,37 @@ flask --app app run --debug
 </b>
 <br/>
 <ul>
-	<li>.</li>
+	<li>React: ver. 18.3.1</li>
+	<li>Vite: ver. 5.3.5</li>
+	<li>TypeScript: ver. 5.2.2</li>
+	<li>Bootstrap: ver. 5.3.3</li>
 </ul>
+<br/>
+
+<b>Installing dependencies</b>
+<br/>
+
+<p>
+	To install all required libraries, make sure you are in the <code>frontend</code> directory and run:
+</p>
+
+```bash
+npm install
+```
+
+<br/>
+<b>Running the Vite development server</b>
+<br/>
+<p>
+	After installing all dependencies, you can start the Vite development server with:
+</p>
+
+```bash
+npm run dev
+```
+
+<p>
+	By default, the server will be available at:
+</p>
+
+http://localhost:5173
