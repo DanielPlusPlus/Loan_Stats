@@ -1,0 +1,26 @@
+.nav-pills .nav-link {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  color: #495057;
+  margin: 0 10px;
+  border-radius: 0.35rem;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+
+.nav-pills .nav-link:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+}
+
+.nav-pills .nav-link.active {
+  color: #fff;
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.tab-content {
+  border: 1px solid #dee2e6;
+  padding: 1rem;
+  border-radius: 0.35rem;
+  margin-top: 1rem;
+}

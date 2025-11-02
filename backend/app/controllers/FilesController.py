@@ -2,6 +2,7 @@ import os
 import sys
 import pandas as pd
 from pandas import DataFrame
+from typing import Union
 
 from app import app
 
@@ -21,7 +22,7 @@ class FilesController:
         else:
             print(f"[FilesController] Invalid data path: {self.__data_path}", file=sys.stderr)
 
-    def get_data(self) -> DataFrame | None:
+    def get_data(self) -> Union[DataFrame, None]:
         return self.__data
 
 
