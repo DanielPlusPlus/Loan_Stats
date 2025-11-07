@@ -2,4 +2,16 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+  min-height: 100vh;
+  font-family: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, rgba(255, 89, 94, 0.85), rgba(255, 209, 102, 0.85), rgba(6, 214, 160, 0.85), rgba(17, 138, 178, 0.85), rgba(108, 99, 255, 0.85));
+  color: #101223;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem;
 }

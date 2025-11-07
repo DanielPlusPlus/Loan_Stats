@@ -12,7 +12,7 @@ import ChernoffFacesTab from "./components/ChernoffFacesTab";
 import PredictionsTab from "./components/PredictionsTab";
 
 const AppContent = () => (
-  <Container className="py-4">
+  <Container className="py-4 rainbow-layout">
     <Row className="align-items-center mb-4">
       <Col>
         <h1 className="mb-0">Loan Stats Dashboard</h1>
@@ -22,7 +22,11 @@ const AppContent = () => (
       </Col>
     </Row>
 
-    <Tabs variant="pills" defaultActiveKey="statistics" className="mb-3">
+    <Tabs
+      variant="pills"
+      defaultActiveKey="statistics"
+      className="mb-3 rainbow-tabs"
+    >
       <Tab eventKey="statistics" title="Statystyki">
         <StatisticsTab />
       </Tab>
