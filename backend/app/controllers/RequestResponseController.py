@@ -5,7 +5,7 @@ import numpy as np
 
 class RequestResponseController:
     @staticmethod
-    def validate_language_request() -> Tuple[Optional[str], Optional[Response], Optional[int]]:
+    def validate_stats_request() -> Tuple[Optional[str], Optional[Response], Optional[int]]:
         column_name = request.args.get("column_name")
         if not column_name:
             return None, jsonify({"success": False, "error": "Missing column_name parameter"}), 400
