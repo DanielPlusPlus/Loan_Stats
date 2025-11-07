@@ -64,11 +64,14 @@ function App() {
             <StatisticsTab />
           </div>
         </Tab>
-        <Tab eventKey="chernoff-faces" title="Twarze Czernowa">
-          <div>Chernoff Faces Content</div>
+		<Tab eventKey="predictions" title="Predykcje">
+          <div>Preddictions Content</div>
         </Tab>
         <Tab eventKey="charts" title="Wykresy">
           <div>Charts Content</div>
+        </Tab>
+		<Tab eventKey="chernoff-faces" title="Twarze Chernoffa">
+          <div>Chernoff Faces Content</div>
         </Tab>
       </Tabs>
     </div>
