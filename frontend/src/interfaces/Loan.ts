@@ -9,6 +9,10 @@ export interface Loan {
   years_employed: number;
 }
 
-export interface ApiResponse {
-  result: Loan[];
+export interface ApiResponse<T> {
+  success: boolean;
+  result: T;
+  error?: string;
 }
+
+export type LoansResponse = ApiResponse<Loan[]>;

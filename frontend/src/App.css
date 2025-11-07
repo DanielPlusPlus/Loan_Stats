@@ -24,3 +24,15 @@
   border-radius: 0.35rem;
   margin-top: 1rem;
 }
+
+.card-header {
+  font-weight: 600;
+}
+
+.table-responsive {
+  max-height: 420px;
+}
+
+.table-responsive table {
+  margin-bottom: 0;
+}
