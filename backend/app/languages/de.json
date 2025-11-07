@@ -1,0 +1,9 @@
+{
+  "chernoff_legend": [
+    "Gesichtsform: Einkommen → breiter/schmaler",
+    "Augenbreite: Kredit-Score → größere/kleinere Augen",
+    "Augenposition: Kreditbetrag → Augen näher/weiter auseinander",
+    "Naselänge: Beschäftigungsjahre → längere/kürzere Nase",
+    "Mundkrümmung: Punkte → lächelnd/traurig"
+  ]
+}

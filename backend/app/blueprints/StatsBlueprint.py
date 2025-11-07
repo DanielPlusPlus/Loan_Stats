@@ -9,7 +9,7 @@ StatsCalculatorController = StatsCalculatorController()
 
 @StatsBlueprint.route("/mean")
 def get_columns_mean():
-    column_name, err, code = RequestResponseController.validate_stats_request()
+    column_name, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
     return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_mean, column_name)
@@ -17,7 +17,7 @@ def get_columns_mean():
 
 @StatsBlueprint.route("/sum")
 def get_columns_sum():
-    column_name, err, code = RequestResponseController.validate_stats_request()
+    column_name, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
     return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_sum, column_name)
@@ -25,7 +25,7 @@ def get_columns_sum():
 
 @StatsBlueprint.route("/quartiles")
 def get_columns_quartiles():
-    column_name, err, code = RequestResponseController.validate_stats_request()
+    column_name, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
     return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_quartiles, column_name)
@@ -33,7 +33,7 @@ def get_columns_quartiles():
 
 @StatsBlueprint.route("/median")
 def get_columns_median():
-    column_name, err, code = RequestResponseController.validate_stats_request()
+    column_name, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
     return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_median, column_name)
@@ -41,7 +41,7 @@ def get_columns_median():
 
 @StatsBlueprint.route("/mode")
 def get_columns_mode():
-    column_name, err, code = RequestResponseController.validate_stats_request()
+    column_name, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
     return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_mode, column_name)
@@ -49,7 +49,7 @@ def get_columns_mode():
 
 @StatsBlueprint.route("/skewness")
 def get_columns_skewness():
-    column_name, err, code = RequestResponseController.validate_stats_request()
+    column_name, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
     return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_skewness, column_name)
@@ -57,7 +57,7 @@ def get_columns_skewness():
 
 @StatsBlueprint.route("/kurtosis")
 def get_columns_kurtosis():
-    column_name, err, code = RequestResponseController.validate_stats_request()
+    column_name, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
     return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_kurtosis, column_name)
@@ -65,7 +65,7 @@ def get_columns_kurtosis():
 
 @StatsBlueprint.route("/deviation")
 def get_columns_deviation():
-    column_name, err, code = RequestResponseController.validate_stats_request()
+    column_name, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
     return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_deviation, column_name)

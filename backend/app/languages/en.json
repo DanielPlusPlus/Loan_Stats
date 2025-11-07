@@ -1,0 +1,9 @@
+{
+  "chernoff_legend": [
+    "Face shape: income → wider/narrower face",
+    "Eye width: credit_score → bigger/smaller eyes",
+    "Eye position: loan_amount → eyes closer/farther",
+    "Nose length: years_employed → longer/shorter nose",
+    "Mouth curvature: points → smiling/frowning"
+  ]
+}
