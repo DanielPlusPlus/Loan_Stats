@@ -246,33 +246,82 @@ class ChartsController:
         sns.set(style="whitegrid")
 
         cols = ["income", "credit_score", "loan_amount", "years_employed", "points"]
+
         group_means = data.groupby("loan_approved")[cols].mean().T
+        group_means.columns = ["Rejected", "Approved"]
+
+        normalized_means = group_means.copy()
+
+        for col in group_means.index:
+            min_val = data[col].min()
+            max_val = data[col].max()
+
+            if (max_val - min_val) != 0:
+                normalized_means.loc[col, "Rejected"] = (normalized_means.loc[col, "Rejected"] - min_val) / (
+                        max_val - min_val)
+                normalized_means.loc[col, "Approved"] = (normalized_means.loc[col, "Approved"] - min_val) / (
+                        max_val - min_val)
+            else:
+                normalized_means.loc[col, "Rejected"] = 1 if normalized_means.loc[col, "Rejected"] > 0 else 0
+                normalized_means.loc[col, "Approved"] = 1 if normalized_means.loc[col, "Approved"] > 0 else 0
 
         plt.figure(figsize=(8, 5))
-        group_means.plot(kind="bar", color=["#ff9999", "#99ff99"])
-        plt.title("Comparison of Mean Client Features by Loan Decision")
+
+        normalized_means.plot(kind="bar", ax=plt.gca(), color=["#ff9999", "#99ff99"])
+
+        plt.title("Comparison of Normalized Mean Client Features by Loan Decision")
         plt.xlabel("Client Feature")
-        plt.ylabel("Mean Value")
+        plt.ylabel("Normalized Mean Value (0 to 1)")
         plt.xticks(rotation=45, ha="right")
-        plt.legend(["Rejected", "Approved"], title="Decision")
+        plt.legend(title="Decision")
+
+        plt.ylim(0, normalized_means.values.max() * 1.1)
+
         img = self.__fig_to_base64(plt)
         plt.close()
         return img
 
     def plot_income_radar(self) -> str:
         data = self.__get_data()
-        means = data[["income", "loan_amount", "credit_score", "years_employed"]].mean()
+
+        cols = ["income", "loan_amount", "credit_score", "years_employed"]
+
+        normalized_data = data.copy()
+
+        for col in cols:
+            min_val = normalized_data[col].min()
+            max_val = normalized_data[col].max()
+
+            if (max_val - min_val) != 0:
+                normalized_data[col] = (normalized_data[col] - min_val) / (max_val - min_val)
+            else:
+                normalized_data[col] = 1 if max_val > 0 else 0
+
+        means = normalized_data[cols].mean()
         categories = list(means.index)
         values = means.values
-        values = np.concatenate((values, [values[0]]))  # close the circle
+
+        values = np.concatenate((values, [values[0]]))
         angles = np.linspace(0, 2 * np.pi, len(categories) + 1)
+
         plt.figure(figsize=(6, 6))
         ax = plt.subplot(111, polar=True)
         ax.plot(angles, values, "o-", linewidth=2)
         ax.fill(angles, values, alpha=0.25)
+
         ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(categories)
-        plt.title("Radar Chart of Average Values")
+        labels = ax.set_xticklabels(categories, fontsize=10, fontweight='bold', ha='center', va='center')
+
+        for label in labels:
+            label.set_y(label.get_position()[1] + 0.05)
+
+        ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
+        ax.set_ylim(0, 1)
+
+        plt.subplots_adjust(top=0.85, bottom=0.15, left=0.15, right=0.85)
+
+        plt.title("Radar Chart of Average Normalized Values")
+
         return self.__fig_to_base64(plt)
 
     def plot_age_pyramid(self) -> str:
@@ -297,6 +346,7 @@ class ChartsController:
         plt.xlabel("Client (sorted)")
         plt.ylabel("Income")
         return self.__fig_to_base64(plt)
+
     '''
     def plot_combined_distribution(self, column: str) -> str:
         data = self.__get_data()
@@ -342,17 +392,35 @@ class ChartsController:
 
         num_cols = data.select_dtypes(include=[np.number]).columns.tolist()
 
-        selected_cols = [col for col in ["income", "loan_amount", "credit_score", "years_employed"] if col in num_cols]
-        if not selected_cols:
+        selected_cols = ["income", "loan_amount", "credit_score", "years_employed"]
+
+        transformed_data = pd.DataFrame()
+        kurtosis_values = {}
+
+        for col in selected_cols:
+            if col in num_cols:
+                if col in ["income", "loan_amount"]:
+                    transformed_data[col] = np.log1p(data[col].dropna())
+                else:
+                    transformed_data[col] = data[col].dropna()
+
+                kurtosis_values[col] = transformed_data[col].kurtosis()
+
+        if transformed_data.empty:
             raise ValueError("No suitable numeric columns for kurtosis comparison.")
 
         plt.figure(figsize=(10, 6))
 
         for col in selected_cols:
-            sns.kdeplot(data[col].dropna(), label=f"{col} (κ={data[col].kurtosis():.2f})", linewidth=2)
+            if col in transformed_data.columns:
+                sns.kdeplot(
+                    transformed_data[col],
+                    label=f"{col} (κ={kurtosis_values[col]:.2f})",
+                    linewidth=2
+                )
 
-        plt.title("Kurtosis Comparison for Selected Numeric Variables")
-        plt.xlabel("Value")
+        plt.title("Kurtosis Comparison for Selected Numeric Variables (Log Transformed Income/Loan)")
+        plt.xlabel("Value (Log-Transformed where applicable)")
         plt.ylabel("Density")
         plt.legend(title="Variable (Kurtosis κ)")
         plt.grid(True, linestyle="--", alpha=0.4)
@@ -360,4 +428,3 @@ class ChartsController:
         img = self.__fig_to_base64(plt)
         plt.close()
         return img
-

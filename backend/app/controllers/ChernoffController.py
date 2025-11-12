@@ -54,7 +54,7 @@ class ChernoffController:
 
     def __set_font_for_language(self, language: str):
         if language == "zh":
-            plt.rcParams['font.family'] = 'SimHei'
+            plt.rcParams['font.family'] = 'SimSun'
         elif language == "ko":
             plt.rcParams['font.family'] = 'Malgun Gothic'
         else:
@@ -73,5 +73,8 @@ class ChernoffController:
             loc='center right',
             bbox_to_anchor=(1.15, 0.5),
             frameon=False,
-            fontsize=9
+            fontsize=9,
+            alignment="left",
+            handletextpad=0.4,
+            labelspacing=0.6,
         )
