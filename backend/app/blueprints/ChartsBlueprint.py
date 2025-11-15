@@ -1,10 +1,122 @@
 from flask import Blueprint
+from flask import request
 from app.controllers.RequestResponseController import RequestResponseController
 from app.controllers.ChartsController import ChartsController
 
 ChartsBlueprint = Blueprint("charts", __name__)
 
 ChartsController = ChartsController()
+@ChartsBlueprint.route("/quantiles-distance")
+def quantiles_distance():
+    """
+    Quantiles distance from mean (Income): |Q1-mean|, |Q2-mean|, |Q3-mean|.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+      - name: column
+        in: query
+        type: string
+        required: false
+        default: income
+        description: Numeric column key (e.g., income, loan_amount, credit_score, years_employed, points)
+      - name: mode
+        in: query
+        type: string
+        required: false
+        default: normal
+        enum: ['normal', 'prognosis']
+        description: Dataset mode to use.
+      - name: compare
+        in: query
+        type: boolean
+        required: false
+        default: false
+        description: When true, overlays Normal vs Prognosis distances
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
+    language, err, code = RequestResponseController.validate_language_request()
+    if err:
+        return err, code
+    return ChartsController.plot_quantiles_distance(language)
+@ChartsBlueprint.route("/dist-normal")
+def dist_normal():
+    """
+    Theoretical Gaussian (Normal) distribution plot.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
+    language, err, code = RequestResponseController.validate_language_request()
+    if err:
+        return err, code
+    return ChartsController.plot_normal_distribution(language)
+
+
+@ChartsBlueprint.route("/dist-student-t")
+def dist_student_t():
+    """
+    Theoretical Student's t distribution (df=5) plot.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
+    language, err, code = RequestResponseController.validate_language_request()
+    if err:
+        return err, code
+    return ChartsController.plot_student_t_distribution(language)
 
 
 @ChartsBlueprint.route("/income-hist")
@@ -722,3 +834,57 @@ def kurtosis_comparison():
     if err:
         return err, code
     return ChartsController.plot_kurtosis_comparison(language)
+
+
+@ChartsBlueprint.route("/chart-description")
+def chart_description():
+    """
+    Returns a localized, comprehensive description of a chart.
+    ---
+    parameters:
+      - name: chart
+        in: query
+        type: string
+        required: true
+        description: Chart id (e.g., 'income-hist', 'credit-vs-loan').
+      - name: language
+        in: query
+        type: string
+        required: true
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: Target language code.
+    responses:
+      200:
+        description: JSON payload with chart id and localized description.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                result:
+                  type: object
+                  properties:
+                    chart:
+                      type: string
+                    description:
+                      type: string
+      400:
+        description: Missing or invalid parameters.
+    tags:
+      - Charts
+    """
+    language, err, code = RequestResponseController.validate_language_request()
+    if err:
+        return err, code
+
+    chart_id = request.args.get("chart")
+    if not chart_id:
+        from flask import jsonify
+        return jsonify({"success": False, "error": "Missing chart parameter"}), 400
+
+    def _resolver():
+        return ChartsController.get_chart_description(chart_id, language)
+
+    return RequestResponseController.make_data_response(_resolver)

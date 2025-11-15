@@ -4,16 +4,14 @@ import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Card from 'react-bootstrap/Card';
-import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
-import Row from 'react-bootstrap/Row';
 import Spinner from 'react-bootstrap/Spinner';
 import Table from 'react-bootstrap/Table';
 import type { LanguageCode } from '../context/LanguageContext';
 import useLanguage from '../hooks/useLanguage';
-import type { ApiResponse, Loan } from '../interfaces/Loan';
+import type { ApiResponse, Loan, PaginatedData } from '../interfaces/Loan';
 import api from '../services/api';
-
+type Row = Loan & { [key: string]: unknown };
 interface Quartiles {
   Q1: number;
   Q2: number;
@@ -68,9 +66,7 @@ const DEFAULT_LOCALE_MAP: Record<LanguageCode, string> = {
   ko: 'ko-KR',
 };
 
-const PAGE_SIZE = 100;
-
-const COLUMN_LABEL_KEYS: Record<keyof Loan, string> = {
+const COLUMN_LABEL_KEYS: Partial<Record<keyof Loan, string>> = {
   city: 'data_col_city',
   credit_score: 'data_col_credit_score',
   income: 'data_col_income',
@@ -193,12 +189,16 @@ const formatCellValue = (
 
 const StatisticsTab = () => {
   const { language, t } = useLanguage();
-  const [loans, setLoans] = useState<Loan[]>([]);
+  const [loans, setLoans] = useState<Row[]>([]);
   const [headerLabels, setHeaderLabels] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [tableLoading, setTableLoading] = useState(true);
   const [tableError, setTableError] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [datasetFilter, setDatasetFilter] = useState<'all' | 'normal' | 'prognosis'>('all');
+  const [mode, setMode] = useState<'normal' | 'prognosis' | 'merged'>('normal');
 
   const [numericColumns, setNumericColumns] = useState<string[]>([]);
   const [selectedColumn, setSelectedColumn] = useState<string>('');
@@ -231,18 +231,19 @@ const StatisticsTab = () => {
       setTableError(null);
 
       try {
-        const response = await api.get<ApiResponse<Loan[]>>('/data', {
-          params: { page, language },
+        const response = await api.get<ApiResponse<PaginatedData>>('/data', {
+          params: { page, language, mode },
         });
 
         if (!response.data.success) {
           throw new Error(response.data.error ?? 'Serwer zwrócił niepoprawną odpowiedź.');
         }
 
-        setLoans(response.data.result);
+        const paginatedData = response.data.result;
+        setLoans(paginatedData.data as unknown as Row[]);
         setCurrentPage(page);
-        setHasNextPage(response.data.result.length === PAGE_SIZE);
-        discoverNumericColumns(response.data.result);
+        setHasNextPage(paginatedData.has_next);
+        discoverNumericColumns(paginatedData.data);
       } catch (error) {
         const message = extractErrorMessage(error, t);
         setTableError(message);
@@ -250,7 +251,7 @@ const StatisticsTab = () => {
         setTableLoading(false);
       }
     },
-    [t, language]
+    [t, language, discoverNumericColumns]
   );
 
   useEffect(() => {
@@ -258,8 +259,9 @@ const StatisticsTab = () => {
   }, []);
 
   useEffect(() => {
-    void fetchTableData(currentPage || 1);
-  }, [language]);
+    setCurrentPage(1);
+    void fetchTableData(1);
+  }, [language, mode]);
 
   useEffect(() => {
     const fetchHeaderLabels = async () => {
@@ -294,7 +296,7 @@ const StatisticsTab = () => {
       };
 
       try {
-        return await performRequest({ column_name: column, language });
+        return await performRequest({ column_name: column, language, mode });
       } catch (error) {
         if (shouldRetryLegacyStatsRequest(error, column, language)) {
           try {
@@ -368,6 +370,48 @@ const StatisticsTab = () => {
     }
 
     void fetchTableData(nextPage);
+  };
+
+  const sortedAndFilteredLoans = useMemo(() => {
+    let rows = loans.slice();
+    if (datasetFilter !== 'all') {
+      rows = rows.filter((r) => String(r.dataset_code ?? 'normal').toLowerCase() === datasetFilter);
+    }
+    if (sortKey) {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      rows = [...rows].sort((a, b) => {
+        if (sortKey === 'dataset') {
+          const codeA = String(a.dataset_code ?? 'normal').toLowerCase();
+          const codeB = String(b.dataset_code ?? 'normal').toLowerCase();
+          const orderAsc = ['prognosis', 'normal'];
+          const orderDesc = ['normal', 'prognosis'];
+          const order = dir === 1 ? orderAsc : orderDesc;
+          const idxA = order.indexOf(codeA);
+          const idxB = order.indexOf(codeB);
+          const aRank = idxA === -1 ? Number.POSITIVE_INFINITY : idxA;
+          const bRank = idxB === -1 ? Number.POSITIVE_INFINITY : idxB;
+          return aRank - bRank;
+        }
+        const va = a[sortKey as keyof Row];
+        const vb = b[sortKey as keyof Row];
+        const na = typeof va === 'number' ? va : Number(va);
+        const nb = typeof vb === 'number' ? vb : Number(vb);
+        if (!Number.isNaN(na) && !Number.isNaN(nb)) return (na - nb) * dir;
+        const sa = String(va ?? '');
+        const sb = String(vb ?? '');
+        return sa.localeCompare(sb) * dir;
+      });
+    }
+    return rows;
+  }, [loans, sortKey, sortDir, datasetFilter]);
+
+  const onHeaderClick = (key: string) => {
+    if (sortKey === key) {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
   };
 
   const handleColumnChange = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -469,100 +513,196 @@ const StatisticsTab = () => {
   };
 
   return (
-    <section>
-      <Row className="gy-3">
-        <Col lg={4}>
-          <Card>
-            <Card.Header>{t('stats_column_params', 'Parametry kolumny')}</Card.Header>
-            <Card.Body>
-              <Form.Group controlId="statistics-column">
-                <Form.Label>{t('stats_select_column', 'Wybierz kolumnę')}</Form.Label>
-                <Form.Select value={selectedColumn} onChange={handleColumnChange}>
-                  <option value="" disabled>
-                    {t('stats_select_placeholder', '-- wybierz --')}
+    <section className="container-fluid px-0">
+      <Card>
+        <Card.Header>
+          <div className="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <span>{t('ui_tab_statistics', 'Statystyki')}</span>
+            <ButtonGroup>
+              <Button
+                variant={mode === 'normal' ? 'primary' : 'outline-primary'}
+                size="sm"
+                onClick={() => setMode('normal')}
+                disabled={tableLoading && mode === 'normal'}
+              >
+                {t('ui_mode_normal', 'Normalne')}
+              </Button>
+              <Button
+                variant={mode === 'prognosis' ? 'primary' : 'outline-primary'}
+                size="sm"
+                onClick={() => setMode('prognosis')}
+                disabled={tableLoading && mode === 'prognosis'}
+              >
+                {t('ui_mode_prognosis', 'Prognoza')}
+              </Button>
+              <Button
+                variant={mode === 'merged' ? 'primary' : 'outline-primary'}
+                size="sm"
+                onClick={() => setMode('merged')}
+                disabled={tableLoading && mode === 'merged'}
+              >
+                {t('ui_mode_merged', 'Połączone')}
+              </Button>
+            </ButtonGroup>
+          </div>
+        </Card.Header>
+        <Card.Body>
+          <div className="mb-4 text-center">
+            <Form.Group
+              controlId="statistics-column"
+              className="mb-3"
+              style={{ maxWidth: 400, margin: '0 auto' }}
+            >
+              <Form.Label className="fw-semibold" style={{ color: '#212529' }}>
+                {t('stats_select_column', 'Wybierz kolumnę')}
+              </Form.Label>
+              <Form.Select value={selectedColumn} onChange={handleColumnChange}>
+                <option value="" disabled>
+                  {t('stats_select_placeholder', '-- wybierz --')}
+                </option>
+                {numericColumns.map((column) => (
+                  <option key={column} value={column}>
+                    {headerLabels[column] ?? getColumnLabel(column as keyof Loan, t)}
                   </option>
-                  {numericColumns.map((column) => (
-                    <option key={column} value={column}>
-                      {headerLabels[column] ?? getColumnLabel(column as keyof Loan, t)}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </Card.Body>
-          </Card>
+                ))}
+              </Form.Select>
+            </Form.Group>
 
-          <Card className="mt-3">
-            <Card.Header>{t('stats_current_params', 'Bieżące parametry')}</Card.Header>
-            <Card.Body>{renderStatisticsContent()}</Card.Body>
-          </Card>
-        </Col>
+            {renderStatisticsContent()}
+          </div>
 
-        <Col lg={8}>
-          <Card>
-            <Card.Header>
-              {t('data_table_header', 'Dane (strona)')} {currentPage}
-            </Card.Header>
-            <Card.Body className="p-0">
+          <Table
+            striped
+            bordered
+            hover
+            responsive
+            className="mb-0 align-middle w-100"
+            style={{
+              background: 'var(--bs-white)',
+              borderRadius: 12,
+              overflow: 'hidden',
+              boxShadow: '0 2px 12px 0 rgba(0,0,0,0.04)',
+            }}
+          >
+            <thead style={{ background: 'var(--bs-primary)', color: 'white' }}>
+              <tr>
+                {loans.length > 0 &&
+                  (Object.keys(loans[0]) as Array<keyof Loan>).map((key) => {
+                    const k = String(key);
+                    const sortable = k !== 'dataset';
+                    return (
+                      <th
+                        key={k}
+                        className="text-nowrap"
+                        style={{ cursor: sortable ? 'pointer' : 'default' }}
+                        onClick={sortable ? () => onHeaderClick(k) : undefined}
+                        title={sortable ? t('click_to_sort', 'Kliknij, aby sortować') : undefined}
+                      >
+                        {headerLabels[k] ?? getColumnLabel(key, t)}
+                        {sortable && sortKey === k ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                      </th>
+                    );
+                  })}
+              </tr>
+            </thead>
+            <tbody>
               {tableLoading ? (
-                <div className="d-flex justify-content-center align-items-center py-4">
-                  <Spinner animation="border" role="status" />
-                </div>
+                <tr>
+                  <td
+                    colSpan={loans.length > 0 ? Object.keys(loans[0]).length : 1}
+                    className="text-center py-5"
+                  >
+                    <Spinner animation="border" role="status" />
+                  </td>
+                </tr>
               ) : tableError ? (
-                <Alert variant="danger" className="m-3">
-                  {tableError}
-                </Alert>
+                <tr>
+                  <td
+                    colSpan={loans.length > 0 ? Object.keys(loans[0]).length : 1}
+                    className="text-center text-danger"
+                  >
+                    {tableError}
+                  </td>
+                </tr>
               ) : (
-                <div className="table-responsive">
-                  <Table striped bordered hover responsive className="mb-0 small">
-                    <thead>
-                      <tr>
-                        {loans.length > 0 &&
-                          (Object.keys(loans[0]) as Array<keyof Loan>).map((key) => (
-                            <th key={String(key)}>
-                              {headerLabels[String(key)] ?? getColumnLabel(key, t)}
-                            </th>
-                          ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loans.map((row, index) => (
-                        <tr key={index}>
-                          {Object.entries(row).map(([key, value]) => (
-                            <td key={key}>{formatCellValue(value, locale, t)}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </div>
+                sortedAndFilteredLoans.map((row, index) => (
+                  <tr key={index}>
+                    {Object.entries(row).map(([key, value]) => (
+                      <td key={key}>
+                        {key === 'dataset'
+                          ? (() => {
+                              const code = String(
+                                (row as any)['dataset_code'] ?? 'normal'
+                              ).toLowerCase();
+                              const label = String(value ?? '');
+                              const variant =
+                                code === 'prognosis'
+                                  ? 'success'
+                                  : code === 'normal'
+                                  ? 'secondary'
+                                  : 'info';
+                              return (
+                                <span
+                                  className={`badge bg-${variant}`}
+                                  style={{ cursor: 'pointer' }}
+                                  onClick={() =>
+                                    setDatasetFilter((cur) =>
+                                      cur === code ? 'all' : (code as 'normal' | 'prognosis')
+                                    )
+                                  }
+                                  title={
+                                    datasetFilter === code
+                                      ? t('click_to_clear_filter', 'Kliknij, aby usunąć filtr')
+                                      : t('click_to_filter', 'Kliknij, aby przefiltrować')
+                                  }
+                                >
+                                  {label}
+                                </span>
+                              );
+                            })()
+                          : formatCellValue(value, locale, t)}
+                      </td>
+                    ))}
+                  </tr>
+                ))
               )}
-            </Card.Body>
-            <Card.Footer className="d-flex justify-content-between align-items-center">
-              <span>
-                {t('data_on_page', 'Na stronie:')} {loans.length}
+            </tbody>
+          </Table>
+        </Card.Body>
+        <Card.Footer>
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 stack-on-short">
+            <span className="text-secondary">
+              {t('data_on_page', 'Na stronie:')} {loans.length}
+            </span>
+            {datasetFilter !== 'all' && (
+              <span className="text-secondary">
+                {t('active_filter', 'Aktywny filtr:')}{' '}
+                {datasetFilter === 'normal'
+                  ? t('ui_mode_normal', 'Normalne')
+                  : t('ui_mode_prognosis', 'Prognoza')}
               </span>
-              <ButtonGroup>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  disabled={tableLoading || currentPage === 1}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                >
-                  {t('ui_prev', 'Poprzednia')}
-                </Button>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  disabled={tableLoading || !hasNextPage}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                >
-                  {t('ui_next', 'Następna')}
-                </Button>
-              </ButtonGroup>
-            </Card.Footer>
-          </Card>
-        </Col>
-      </Row>
+            )}
+            <ButtonGroup>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                disabled={tableLoading || currentPage === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+              >
+                {t('ui_prev', 'Poprzednia')}
+              </Button>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                disabled={tableLoading || !hasNextPage}
+                onClick={() => handlePageChange(currentPage + 1)}
+              >
+                {t('ui_next', 'Następna')}
+              </Button>
+            </ButtonGroup>
+          </div>
+        </Card.Footer>
+      </Card>
     </section>
   );
 };

@@ -10,59 +10,70 @@
   --rainbow-light: #fef7ff;
 }
 
-.rainbow-layout {
-  background: rgba(255, 255, 255, 0.9);
-  border: 3px solid transparent;
-  border-radius: 1.5rem;
-  border-image: linear-gradient(135deg, var(--rainbow-red), var(--rainbow-orange), var(--rainbow-yellow), var(--rainbow-green), var(--rainbow-blue), var(--rainbow-indigo), var(--rainbow-violet)) 1;
-  box-shadow: 0 20px 45px rgba(16, 18, 35, 0.25);
-  color: var(--rainbow-dark);
+.app-header h1 {
+  margin: 0;
+  font-weight: 800;
+  font-size: 3rem;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(255, 255, 255, 0.2);
 }
 
-h1 {
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  background: linear-gradient(90deg, var(--rainbow-red), var(--rainbow-yellow), var(--rainbow-blue));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.rainbow-tabs .nav {
+  justify-content: center;
 }
 
 .rainbow-tabs .nav-item {
-  flex: 1 1 0;
+  flex: 0 0 auto;
 }
 
 .nav-pills .nav-link {
   position: relative;
   font-weight: 600;
-  color: var(--rainbow-dark);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.75));
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--rainbow-violet), var(--rainbow-indigo));
   border: 2px solid transparent;
-  border-image: linear-gradient(135deg, var(--rainbow-red), var(--rainbow-yellow), var(--rainbow-violet)) 1;
-  margin: 0 6px;
+  border-image: linear-gradient(135deg, var(--rainbow-red), var(--rainbow-yellow), var(--rainbow-green)) 1;
+  margin: 0 12px;
   border-radius: 999px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .nav-pills .nav-link:hover {
+  background: linear-gradient(135deg, var(--rainbow-orange), var(--rainbow-red));
+  border-image: linear-gradient(135deg, var(--rainbow-yellow), var(--rainbow-green), var(--rainbow-blue)) 1;
+  color: #ffffff;
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(17, 138, 178, 0.25);
 }
 
 .nav-pills .nav-link.active {
-  color: white;
-  background: linear-gradient(135deg, var(--rainbow-red), var(--rainbow-orange), var(--rainbow-yellow), var(--rainbow-green), var(--rainbow-blue), var(--rainbow-indigo), var(--rainbow-violet));
-  border: none;
-  box-shadow: 0 10px 24px rgba(255, 89, 94, 0.35);
+  color: #ffffff;
+  background: linear-gradient(
+    135deg,
+    var(--rainbow-red),
+    var(--rainbow-orange),
+    var(--rainbow-yellow),
+    var(--rainbow-green),
+    var(--rainbow-blue)
+  );
+  border-color: transparent;
+  box-shadow: 0 6px 20px rgba(255, 89, 94, 0.5);
+}
+
+@keyframes rainbow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 6px 20px rgba(255, 89, 94, 0.5);
+  }
+  50% {
+    box-shadow: 0 8px 25px rgba(108, 99, 255, 0.6);
+  }
 }
 
 .tab-content {
-  border-radius: 1rem;
-  border: 2px solid transparent;
-  border-image: linear-gradient(135deg, var(--rainbow-blue), var(--rainbow-indigo), var(--rainbow-violet)) 1;
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  padding: 1.5rem 0;
 }
 
 .card {
@@ -70,7 +81,6 @@ h1 {
   border: 2px solid transparent;
   border-image: linear-gradient(135deg, var(--rainbow-green), var(--rainbow-blue)) 1;
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 12px 28px rgba(17, 138, 178, 0.15);
 }
 
 .card-header {
@@ -83,6 +93,157 @@ h1 {
   background: linear-gradient(135deg, rgba(194, 108, 255, 0.15), rgba(17, 138, 178, 0.15));
   border-top: none;
 }
+
+table thead th {
+  position: sticky;
+  top: 0;
+  background: linear-gradient(135deg, var(--rainbow-blue), var(--rainbow-indigo));
+  color: #ffffff;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+table tbody tr:nth-child(even) {
+  background: rgba(17, 138, 178, 0.08);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--rainbow-green), var(--rainbow-blue));
+  box-shadow: 0 8px 22px rgba(6, 214, 160, 0.35);
+}
+
+.form-select,
+.input-group-text {
+  border-radius: 999px;
+  border: 2px solid transparent;
+  border-image: linear-gradient(135deg, var(--rainbow-red), var(--rainbow-violet)) 1;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--rainbow-dark);
+  font-weight: 600;
+}
+
+.form-select:focus {
+  box-shadow: 0 0 0 0.25rem rgba(108, 99, 255, 0.25);
+  border-color: transparent;
+}
+
+.spinner-border {
+  color: var(--rainbow-blue);
+}
+
+.alert-danger {
+  border-radius: 1rem;
+  border: 2px solid transparent;
+  border-image: linear-gradient(135deg, var(--rainbow-red), var(--rainbow-orange)) 1;
+  background: rgba(255, 89, 94, 0.15);
+  color: var(--rainbow-dark);
+  font-weight: 600;
+}
+
+@media (max-height: 720px) {
+  .app-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .app-header .language-picker-wrapper {
+    position: static !important;
+    right: auto !important;
+  }
+  .rainbow-tabs .nav {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .rainbow-tabs .nav .nav-link {
+    margin: 0;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+  .stack-on-short {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  .stack-on-short .btn-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .stack-on-short .btn-group > .btn,
+  .stack-on-short .btn-group > .btn + .btn {
+    width: 100%;
+    max-width: 280px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .app-header .language-picker-wrapper {
+    position: static !important;
+    right: auto !important;
+  }
+  .rainbow-tabs .nav {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .rainbow-tabs .nav .nav-link {
+    margin: 0;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+  .stack-on-short {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  .stack-on-short .btn-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .stack-on-short .btn-group > .btn,
+  .stack-on-short .btn-group > .btn + .btn {
+    width: 100%;
+    max-width: 280px;
+  }
+}
+
+.tab-content {
+  padding: 1.5rem 0;
+}
+
+.card {
+  border-radius: 1rem;
+  border: 2px solid transparent;
+  border-image: linear-gradient(135deg, var(--rainbow-green), var(--rainbow-blue)) 1;
+  background: rgba(255, 255, 255, 0.88);
+
+}
+
+    flex-direction: column !important;
+  font-weight: 700;
+  border-bottom: none;
+  background: linear-gradient(135deg, rgba(6, 214, 160, 0.15), rgba(17, 138, 178, 0.2));
+    margin: 0;
+
+    max-width: 420px;
+  background: linear-gradient(135deg, rgba(194, 108, 255, 0.15), rgba(17, 138, 178, 0.15));
+  border-top: none;
+
 
 .table-responsive {
   max-height: 420px;
@@ -104,19 +265,19 @@ table thead th {
 }
 
 table tbody tr:nth-child(odd) {
-  background: rgba(194, 108, 255, 0.08);
+
 }
 
 table tbody tr:nth-child(even) {
   background: rgba(17, 138, 178, 0.08);
 }
 
-.btn-outline-secondary {
+    margin: 0;
   color: white;
-  background: linear-gradient(135deg, var(--rainbow-orange), var(--rainbow-red));
+    max-width: 420px;
   border: none;
   font-weight: 600;
-  box-shadow: 0 6px 18px rgba(255, 146, 76, 0.35);
+
 }
 
 .btn-outline-secondary:hover,

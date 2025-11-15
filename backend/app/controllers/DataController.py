@@ -4,7 +4,7 @@ import numpy as np
 
 
 class DataController:
-    PAGE_LIMIT = 100
+    PAGE_LIMIT = 15
 
     __BOOL_LABELS: Dict[str, Dict[bool, str]] = {
         "en": {True: "Yes", False: "No"},
@@ -24,6 +24,7 @@ class DataController:
             "name": "Name",
             "points": "Points",
             "years_employed": "Years employed",
+            "dataset": "Dataset",
         },
         "pl": {
             "city": "Miasto",
@@ -34,6 +35,7 @@ class DataController:
             "name": "Imię",
             "points": "Punkty",
             "years_employed": "Lata zatrudnienia",
+            "dataset": "Zbiór danych",
         },
         "de": {
             "city": "Stadt",
@@ -44,6 +46,7 @@ class DataController:
             "name": "Name",
             "points": "Punkte",
             "years_employed": "Beschäftigungsjahre",
+            "dataset": "Datensatz",
         },
         "zh": {
             "city": "城市",
@@ -54,6 +57,7 @@ class DataController:
             "name": "姓名",
             "points": "积分",
             "years_employed": "就业年限",
+            "dataset": "数据集",
         },
         "ko": {
             "city": "도시",
@@ -64,7 +68,16 @@ class DataController:
             "name": "이름",
             "points": "포인트",
             "years_employed": "근속 연수",
+            "dataset": "데이터셋",
         },
+    }
+
+    __DATASET_LABELS: Dict[str, Dict[str, str]] = {
+        "en": {"normal": "Normal", "prognosis": "Prognosis"},
+        "pl": {"normal": "Normalne", "prognosis": "Prognoza"},
+        "de": {"normal": "Normal", "prognosis": "Prognose"},
+        "zh": {"normal": "正常", "prognosis": "预测"},
+        "ko": {"normal": "일반", "prognosis": "예측"},
     }
 
     @staticmethod
@@ -113,23 +126,55 @@ class DataController:
         result: Dict[str, str] = {}
         for col in data.columns:
             result[col] = labels.get(col, str(col))
+
+        if 'dataset' not in result and 'dataset' in labels:
+            result['dataset'] = labels['dataset']
         return result
 
     @staticmethod
-    def get_data(page: int = 1, language: Optional[str] = None) -> dict:
-        data = FilesControllerInstance.get_data()
+    def get_data(page: int = 1, language: Optional[str] = None, mode: str = "normal") -> dict:
+        mode_norm = (mode or "normal").strip().lower()
+        if mode_norm == "prognosis":
+            data = FilesControllerInstance.get_prognosis_only_data()
+        elif mode_norm == "merged":
+
+            data = FilesControllerInstance.get_prognosis_data()
+        else:
+            data = FilesControllerInstance.get_data()
         if data is not None:
+            total_records = len(data)
             start = (page - 1) * DataController.PAGE_LIMIT
             end = start + DataController.PAGE_LIMIT
             page_data = data.iloc[start:end]
             if page_data.empty:
                 raise ValueError("No data found for this page")
             records = page_data.to_dict(orient="records")
+            for row in records:
+                if "dataset" not in row:
+                    row["dataset"] = "normal"
             if language:
                 localized_records = []
                 for row in records:
                     localized_row = {k: DataController.__localize_value(k, v, language) for k, v in row.items()}
+
+                    if "dataset" in localized_row:
+                        labels = DataController.__DATASET_LABELS.get(language, DataController.__DATASET_LABELS.get("en", {}))
+                        val = str(localized_row["dataset"]).strip().lower()
+                        localized_row["dataset"] = labels.get(val, localized_row["dataset"])
+                        if mode_norm != "normal":
+                            localized_row["dataset_code"] = val
                     localized_records.append(localized_row)
-                return localized_records
-            return records
+                records = localized_records
+            return {
+                "data": records,
+                "has_next": end < total_records,
+                "has_prev": page > 1,
+                "total": total_records,
+                "per_page": DataController.PAGE_LIMIT,
+                "page": page
+            }
         raise ValueError("Dataset not loaded")
+
+    @staticmethod
+    def get_prognosis_process_details() -> Dict[str, Any]:
+        return FilesControllerInstance.get_prognosis_process_details()

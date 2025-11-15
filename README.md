@@ -187,6 +187,31 @@ VITE_API_URL=https://localhost:5001  # For Docker
 
 ---
 
+## 📈 Prognosis Data (Deterministic)
+
+To keep prognosis data constant across Data, Statistics, and Charts tabs, a prognosis CSV is generated once and used by the backend.
+
+- Generator: `backend/app/utils/generate_prognosis.py`
+- Default output: `backend/app/models/prognosis_loan_approval.csv`
+
+Run the generator (macOS/Linux zsh):
+
+```sh
+cd backend/app/utils
+python generate_prognosis.py                 # uses default paths, seed=42, ratio=0.25
+
+# Optional parameters
+python generate_prognosis.py \
+	--base ../models/part_of_loan_approval.csv \
+	--out  ../models/prognosis_loan_approval.csv \
+	--seed 42 \
+	--ratio 0.25
+```
+
+Backend will automatically load the prognosis file if present; if missing, it will generate it deterministically and save it once.
+
+---
+
 ## 📚 Additional Resources
 
 - [API Documentation](https://localhost:5001/apidocs) - Interactive Swagger UI

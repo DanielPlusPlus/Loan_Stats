@@ -35,6 +35,24 @@ def get_data():
         required: false
         default: 1
         description: The page number to retrieve.
+    parameters:
+      - name: mode
+        in: query
+        type: string
+        required: false
+        default: normal
+        description: Dataset mode: 'normal' for original, 'prognosis' for generated prognosis data, or 'merged' for both combined.
+      - name: page
+        in: query
+        type: integer
+        required: false
+        default: 1
+        description: The page number to retrieve.
+      - name: language
+        in: query
+        type: string
+        required: false
+        description: Language code for value localization (e.g., 'pl', 'en').
     responses:
       200:
         description: A paginated list of records.
@@ -70,7 +88,8 @@ def get_data():
     if err:
         return err, code
     language = request.args.get("language")
-    return RequestResponseController.make_data_response(lambda: DataController.get_data(page, language))
+    mode = request.args.get("mode", "normal")
+    return RequestResponseController.make_data_response(lambda: DataController.get_data(page, language, mode))
 
 
 @DataBlueprint.route("/headers-localized")
@@ -98,3 +117,19 @@ def get_headers_localized():
     if err:
         return err, code
     return RequestResponseController.make_data_response(lambda: DataController.get_data_headers_localized(language))
+
+
+@DataBlueprint.route("/prognosis-process")
+def get_prognosis_process():
+    """
+    Get details of how prognosis data is generated (parameters and samples).
+    ---
+    responses:
+      200:
+        description: Generation parameters and source samples per column.
+        schema:
+          type: object
+    tags:
+      - Data
+    """
+    return RequestResponseController.make_data_response(DataController.get_prognosis_process_details)

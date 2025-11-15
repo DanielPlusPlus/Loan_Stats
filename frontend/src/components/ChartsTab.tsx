@@ -2,10 +2,8 @@ import axios from 'axios';
 import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
 import Alert from 'react-bootstrap/Alert';
 import Card from 'react-bootstrap/Card';
-import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Image from 'react-bootstrap/Image';
-import Row from 'react-bootstrap/Row';
 import Spinner from 'react-bootstrap/Spinner';
 import useLanguage from '../hooks/useLanguage';
 import api from '../services/api';
@@ -15,6 +13,7 @@ interface ChartDefinition {
   endpoint: string;
   labelKey: string;
   descriptionKey?: string;
+  description?: string;
 }
 
 const CHARTS: ChartDefinition[] = [
@@ -78,6 +77,8 @@ const CHARTS: ChartDefinition[] = [
     id: 'income-hist-density',
     endpoint: '/income-hist-density',
     labelKey: 'chart_income_hist_density_label',
+    descriptionKey: 'chart_income_hist_density_subtitle',
+    description: 'Density of income divided by credit decision.',
   },
   {
     id: 'income-box',
@@ -129,6 +130,29 @@ const CHARTS: ChartDefinition[] = [
     endpoint: '/kurtosis-comparison',
     labelKey: 'chart_kurtosis_comparison_label',
   },
+  {
+    id: 'dist-normal',
+    endpoint: '/dist-normal',
+    labelKey: 'chart_normal_dist_label',
+  },
+  {
+    id: 'dist-student-t',
+    endpoint: '/dist-student-t',
+    labelKey: 'chart_student_t_dist_label',
+  },
+  {
+    id: 'quantiles-distance',
+    endpoint: '/quantiles-distance',
+    labelKey: 'chart_quantiles_distance_label',
+  },
+];
+
+const NUMERIC_COLUMNS: Array<{ key: string; labelKey: string; fallback: string }> = [
+  { key: 'income', labelKey: 'data_col_income', fallback: 'Income' },
+  { key: 'loan_amount', labelKey: 'data_col_loan_amount', fallback: 'Loan amount' },
+  { key: 'credit_score', labelKey: 'data_col_credit_score', fallback: 'Credit score' },
+  { key: 'years_employed', labelKey: 'data_col_years_employed', fallback: 'Years employed' },
+  { key: 'points', labelKey: 'data_col_points', fallback: 'Points' },
 ];
 
 const extractErrorMessage = (
@@ -150,12 +174,19 @@ const extractErrorMessage = (
   return t('chart_failed_to_fetch', 'Nie udało się pobrać wykresu.');
 };
 
-const ChartsTab = () => {
+type Mode = 'normal' | 'prognosis' | 'merged';
+
+const ChartsTab = ({ mode = 'normal' }: { mode?: Mode }) => {
   const { language, t } = useLanguage();
   const [selectedChart, setSelectedChart] = useState<string>(CHARTS[0]?.id ?? '');
   const [chartSrc, setChartSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [description, setDescription] = useState<string>('');
+  const [descLoading, setDescLoading] = useState<boolean>(false);
+  const [descError, setDescError] = useState<string | null>(null);
+  const [qdColumn, setQdColumn] = useState<string>('income');
+  const [qdCompare, setQdCompare] = useState<boolean>(false);
 
   const fetchChart = useCallback(
     async (chartId: string) => {
@@ -176,8 +207,13 @@ const ChartsTab = () => {
       }
 
       try {
+        const params: Record<string, string | boolean> = { language, mode };
+        if (chartId === 'quantiles-distance') {
+          params.column = qdColumn;
+          params.compare = qdCompare;
+        }
         const response = await api.get(definition.endpoint, {
-          params: { language },
+          params,
           responseType: 'blob',
         });
 
@@ -190,7 +226,7 @@ const ChartsTab = () => {
         setLoading(false);
       }
     },
-    [language, t]
+    [language, mode, qdColumn, qdCompare, t]
   );
 
   useEffect(() => {
@@ -205,6 +241,50 @@ const ChartsTab = () => {
     };
   }, [fetchChart, selectedChart]);
 
+  const fetchDescription = useCallback(
+    async (chartId: string) => {
+      if (!chartId) {
+        setDescription('');
+        return;
+      }
+
+      setDescLoading(true);
+      setDescError(null);
+      try {
+        const params: Record<string, string | boolean> = { chart: chartId, language };
+        if (chartId === 'quantiles-distance') {
+          params.column = qdColumn;
+          params.compare = qdCompare;
+        }
+        const res = await api.get('/chart-description', { params });
+        if (
+          res.data &&
+          res.data.success &&
+          res.data.result &&
+          typeof res.data.result.description === 'string'
+        ) {
+          setDescription(res.data.result.description);
+        } else {
+          setDescription('');
+        }
+      } catch (e) {
+        setDescError(extractErrorMessage(e, t));
+        setDescription('');
+      } finally {
+        setDescLoading(false);
+      }
+    },
+    [language, qdColumn, qdCompare, t]
+  );
+
+  useEffect(() => {
+    if (selectedChart) {
+      void fetchDescription(selectedChart);
+    } else {
+      setDescription('');
+    }
+  }, [fetchDescription, selectedChart]);
+
   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
     setSelectedChart(event.target.value);
   };
@@ -212,48 +292,85 @@ const ChartsTab = () => {
   const selectedDefinition = CHARTS.find((chart) => chart.id === selectedChart);
 
   return (
-    <section>
-      <Row className="gy-3">
-        <Col md={4} lg={3}>
-          <Card>
-            <Card.Header>{t('chart_select_chart', 'Wybierz wykres')}</Card.Header>
-            <Card.Body>
-              <Form.Group controlId="chart-selector">
-                <Form.Select value={selectedChart} onChange={handleChange}>
-                  {CHARTS.map((chart) => (
-                    <option key={chart.id} value={chart.id}>
-                      {t(chart.labelKey, chart.id)}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-              {selectedDefinition?.descriptionKey && (
-                <small className="text-muted d-block mt-2">
-                  {t(selectedDefinition.descriptionKey, '')}
-                </small>
+    <section className="container-fluid px-0">
+      <Card>
+        <Card.Header>{t('charts_title', 'Wykresy')}</Card.Header>
+        <Card.Body>
+          <div className="mb-3" style={{ width: '100%' }}>
+            <Form.Group controlId="chart-selector" style={{ maxWidth: 520, margin: '0 auto' }}>
+              <Form.Label className="fw-semibold">
+                {t('chart_select_chart', 'Wybierz wykres')}
+              </Form.Label>
+              <Form.Select value={selectedChart} onChange={handleChange}>
+                {CHARTS.map((chart) => (
+                  <option key={chart.id} value={chart.id}>
+                    {t(chart.labelKey, chart.id)}
+                  </option>
+                ))}
+              </Form.Select>
+              {selectedChart === 'quantiles-distance' && (
+                <div className="mt-3 d-flex gap-2 align-items-end">
+                  <Form.Group controlId="qd-column" className="flex-grow-1">
+                    <Form.Label>
+                      {t('chart_quantiles_distance_select_column', 'Select column')}
+                    </Form.Label>
+                    <Form.Select value={qdColumn} onChange={(e) => setQdColumn(e.target.value)}>
+                      {NUMERIC_COLUMNS.map((c) => (
+                        <option key={c.key} value={c.key}>
+                          {t(c.labelKey, c.fallback)}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                  <Form.Group controlId="qd-compare" className="ms-2">
+                    <Form.Check
+                      type="switch"
+                      label={t('chart_compare_overlay', 'Compare (overlay Normal vs Prognosis)')}
+                      checked={qdCompare}
+                      onChange={(e) => setQdCompare(e.currentTarget.checked)}
+                    />
+                  </Form.Group>
+                </div>
               )}
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={8} lg={9}>
-          <Card className="h-100">
-            <Card.Header>{t('chart_preview', 'Podgląd')}</Card.Header>
-            <Card.Body className="d-flex align-items-center justify-content-center">
-              {loading ? (
-                <Spinner animation="border" role="status" />
-              ) : error ? (
-                <Alert variant="danger" className="w-100 text-center">
-                  {error}
-                </Alert>
-              ) : chartSrc ? (
-                <Image src={chartSrc} alt={t(selectedDefinition?.labelKey ?? '', 'Wykres')} fluid />
-              ) : (
-                <span>{t('chart_select_to_display', 'Wybierz wykres, aby go wyświetlić.')}</span>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+              <div className="mt-2" style={{ minHeight: 22 }}>
+                {descLoading ? (
+                  <small className="text-muted">
+                    {t('chart_desc_loading', 'Loading description...')}
+                  </small>
+                ) : descError ? (
+                  <small className="text-danger">{descError}</small>
+                ) : description ? (
+                  <small className="text-muted d-block" style={{ whiteSpace: 'pre-line' }}>
+                    {description}
+                  </small>
+                ) : null}
+              </div>
+            </Form.Group>
+          </div>
+
+          <div
+            className="w-100 d-flex align-items-center justify-content-center"
+            style={{ minHeight: 360 }}
+          >
+            {loading ? (
+              <Spinner animation="border" role="status" />
+            ) : error ? (
+              <Alert variant="danger" className="w-100 text-center mx-2">
+                {error}
+              </Alert>
+            ) : chartSrc ? (
+              <Image
+                src={chartSrc}
+                alt={t(selectedDefinition?.labelKey ?? '', 'Wykres')}
+                fluid
+                style={{ maxHeight: '70vh', objectFit: 'contain' }}
+              />
+            ) : (
+              <span>{t('chart_select_to_display', 'Wybierz wykres, aby go wyświetlić.')}</span>
+            )}
+          </div>
+        </Card.Body>
+      </Card>
     </section>
   );
 };

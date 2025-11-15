@@ -47,6 +47,23 @@ class RequestResponseController:
             return jsonify({"success": False, "error": str(e)}), 400
 
     @staticmethod
+    def make_stats_response_with_mode(function_name: Callable[[str, str], Any], column_name: str, mode: str) -> Tuple[Response, int]:
+        try:
+            result = function_name(column_name, mode)
+
+            if isinstance(result, (np.integer, np.floating)):
+                result = result.item()
+            elif isinstance(result, dict):
+                result = {
+                    k: v.item() if isinstance(v, (np.integer, np.floating)) else v
+                    for k, v in result.items()
+                }
+
+            return jsonify({"success": True, "result": result}), 200
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 400
+
+    @staticmethod
     def make_data_response(function_name: Callable[[], Any]) -> Tuple[Response, int]:
         try:
             result = function_name()

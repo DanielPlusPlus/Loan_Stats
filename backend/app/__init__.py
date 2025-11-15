@@ -9,8 +9,10 @@ CORS(app, resources={
             "https://localhost",
             "https://localhost:443",
             "https://localhost:3443",
+            "https://localhost:5173",
             "http://localhost:5173",
-            "http://127.0.0.1:5173"
+            "http://127.0.0.1:5173",
+            "https://127.0.0.1:5173"
         ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]

@@ -10,6 +10,7 @@ import requests
 from pathlib import Path
 
 from flask import Response
+from typing import Optional
 from app.controllers.FilesController import FilesControllerInstance
 from app.controllers.LanguagesController import LanguagesControllerInstance
 
@@ -18,8 +19,20 @@ class ChernoffController:
     __font_cache_dir = Path("/tmp/matplotlib_fonts")
     __downloaded_fonts = {}
 
-    def __get_data(self) -> pd.DataFrame:
-        if self.__data is None: self.__data = FilesControllerInstance.get_data()
+    def __get_data(self, mode: str = 'normal') -> pd.DataFrame:
+        mode_norm = (mode or 'normal').strip().lower()
+        if mode_norm == 'prognosis':
+            data = FilesControllerInstance.get_prognosis_only_data()
+            if data is None:
+                raise ValueError('No data loaded')
+            return data
+        if mode_norm == 'merged':
+            data = FilesControllerInstance.get_prognosis_data()
+            if data is None:
+                raise ValueError('No data loaded')
+            return data
+        if self.__data is None:
+            self.__data = FilesControllerInstance.get_data()
         return self.__data
 
     def __download_font(self, font_url: str, font_name: str) -> str:
@@ -65,10 +78,9 @@ class ChernoffController:
         plt.close(fig)
         return buf.getvalue()
 
-    def generate_chernoff_faces(self, language: str = "en"):
+    def generate_chernoff_faces(self, language: str = "en", mode: str = 'normal', single_face: Optional[str] = None):
         plt.close('all')
-
-        data = self.__get_data()
+        data = self.__get_data(mode)
         cols = ["credit_score", "income", "loan_amount", "points", "years_employed"]
 
         self.__set_font_for_language(language)
@@ -76,7 +88,12 @@ class ChernoffController:
         chernoff_data = LanguagesControllerInstance.get_translation(language, "chernoff", {})
         attributes_trans = chernoff_data.get('attributes', {})
 
-        fig, axes = plt.subplots(1, 5, figsize=(24, 6))
+        if single_face and single_face in cols:
+            fig, axes = plt.subplots(1, 1, figsize=(6, 6))
+            axes = [axes]
+            cols = [single_face]
+        else:
+            fig, axes = plt.subplots(1, 5, figsize=(24, 6))
 
         for idx, col in enumerate(cols):
             q1 = data[col].quantile(0.25)

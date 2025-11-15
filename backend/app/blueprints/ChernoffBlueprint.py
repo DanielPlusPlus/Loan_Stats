@@ -1,4 +1,4 @@
-from flask import Blueprint, make_response
+from flask import Blueprint, make_response, request
 from app.controllers.RequestResponseController import RequestResponseController
 from app.controllers.ChernoffController import ChernoffController
 
@@ -34,8 +34,10 @@ def get_chernoff_faces():
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
+    mode = request.args.get('mode', 'normal')
+    face = request.args.get('face')                                
 
-    response = ChernoffController.generate_chernoff_faces(language)
+    response = ChernoffController.generate_chernoff_faces(language, mode=mode, single_face=face)
 
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'

@@ -8,9 +8,10 @@ import pandas as pd
 import numpy as np
 import requests
 from pathlib import Path
-from flask import Response
+from flask import Response, request
 from app.controllers.FilesController import FilesControllerInstance
 from app.controllers.LanguagesController import LanguagesControllerInstance
+from scipy.stats import norm, t as student_t
 
 matplotlib.use("Agg")
 
@@ -23,6 +24,20 @@ class ChartsController:
         self.__data = None
 
     def __get_data(self) -> pd.DataFrame:
+        try:
+            mode = request.args.get('mode', 'normal') if request else 'normal'
+        except Exception:
+            mode = 'normal'
+        if mode == 'prognosis':
+            data = FilesControllerInstance.get_prognosis_only_data()
+            if data is None:
+                raise ValueError("No data loaded")
+            return data
+        if mode == 'merged':
+            data = FilesControllerInstance.get_prognosis_data()
+            if data is None:
+                raise ValueError("No data loaded")
+            return data
         if self.__data is None:
             self.__data = FilesControllerInstance.get_data()
         return self.__data
@@ -129,6 +144,17 @@ class ChartsController:
         buf.close()
         return img_bytes
 
+    def __get_decision_labels(self, language: str):
+        approved = LanguagesControllerInstance.get_translation(language, "chart_label_approved", "Approved")
+        rejected = LanguagesControllerInstance.get_translation(language, "chart_label_rejected", "Rejected")
+        return {True: approved, False: rejected}
+
+    def __get_income_group_labels(self, language: str):
+        low = LanguagesControllerInstance.get_translation(language, "chart_legend_income_low", "Low")
+        medium = LanguagesControllerInstance.get_translation(language, "chart_legend_income_medium", "Medium")
+        high = LanguagesControllerInstance.get_translation(language, "chart_legend_income_high", "High")
+        return {"low": low, "medium": medium, "high": high}
+
     def plot_income_histogram(self, language: str):
         data = self.__get_data()
         self.__apply_theme(language, style="whitegrid")
@@ -143,15 +169,152 @@ class ChartsController:
         plt.close()
         return Response(img_bytes, mimetype='image/png')
 
+    def get_chart_description(self, chart_id: str, language: str) -> dict:
+        mapping = {
+            "income-hist": (
+                "chart_desc_income_hist",
+                "Shows income density for approved vs rejected loans, letting you compare typical income ranges for each decision.",
+            ),
+            "credit-vs-loan": (
+                "chart_desc_credit_vs_loan",
+                "Scatter plot of credit score vs loan amount. Point size encodes income; color encodes approval, revealing nonlinear relationships and clusters.",
+            ),
+            "employment-box": (
+                "chart_desc_employment_box",
+                "Box-and-strip plot of years employed grouped by approval decision, highlighting medians, spread, and potential outliers.",
+            ),
+            "corr-heatmap": (
+                "chart_desc_corr_heatmap",
+                "Correlation heatmap of numeric variables. Strong positive/negative values indicate variables that move together or inversely.",
+            ),
+            "income-vs-score": (
+                "chart_desc_income_vs_score",
+                "Scatter of income vs credit score colored by approval. Useful for spotting thresholds where approval rates differ.",
+            ),
+            "income-vs-years": (
+                "chart_desc_income_vs_years",
+                "Scatter of income vs years employed colored by decision. Helps assess how tenure relates to income and approval.",
+            ),
+            "credit-violin": (
+                "chart_desc_credit_violin",
+                "Violin plots of credit score split by income groups and approval. Shows distribution shapes, multimodality, and overlap.",
+            ),
+            "avg-income-by-city": (
+                "chart_desc_avg_income_by_city",
+                "Bar chart of average income per city, separated by approval. Highlights geographic differences and selection effects.",
+            ),
+            "pairplot-main": (
+                "chart_desc_pairplot_main",
+                "Pairwise relationships between key variables with class coloring, showing linearity, separation, and potential interactions.",
+            ),
+            "loan-amount-box": (
+                "chart_desc_loan_amount_box",
+                "Box-and-strip plot of loan amounts by decision, surfacing typical size differences and outliers across groups.",
+            ),
+            "credit-score-hist": (
+                "chart_desc_credit_score_hist",
+                "Density of credit scores for approved vs rejected loans to visualize typical score ranges and separation.",
+            ),
+            "income-hist-density": (
+                "chart_desc_income_hist_density",
+                "Histogram with KDE density of income overall. Useful to understand skewness, spread, and common income values.",
+            ),
+            "income-box": (
+                "chart_desc_income_box",
+                "Box plot of income to summarize median, quartiles, and potential outliers in the distribution.",
+            ),
+            "income-ecdf": (
+                "chart_desc_income_ecdf",
+                "Empirical CDF of income, showing for any value x the share of clients with income ≤ x. Great for percentile lookup.",
+            ),
+            "income-frequency": (
+                "chart_desc_income_frequency",
+                "Absolute frequency of clients across income bins to see how many fall into each range.",
+            ),
+            "income-relative-frequency": (
+                "chart_desc_income_relative_frequency",
+                "Relative frequency (proportion) of clients across income bins to compare ranges independent of sample size.",
+            ),
+            "loan-pie": (
+                "chart_desc_loan_pie",
+                "Pie chart of approval outcomes showing the proportion of approved vs rejected loans.",
+            ),
+            "loan-group-means": (
+                "chart_desc_loan_group_means",
+                "Normalized mean comparison of client features between approved and rejected groups, highlighting feature-level differences.",
+            ),
+            "income-radar": (
+                "chart_desc_income_radar",
+                "Radar chart of average normalized values across selected features to compare their relative magnitudes.",
+            ),
+            "age-pyramid": (
+                "chart_desc_age_pyramid",
+                "Population pyramid style plot (using employment years as age proxy) contrasting approved vs rejected distributions.",
+            ),
+            "income-line": (
+                "chart_desc_income_line",
+                "Line plot of sorted incomes, useful to spot jumps, long tails, and overall smoothness of the distribution.",
+            ),
+            "kurtosis-comparison": (
+                "chart_desc_kurtosis_comparison",
+                "KDE curves for selected variables with kurtosis annotations (κ), indicating tail heaviness and peak sharpness.",
+            ),
+            "dist-normal": (
+                "chart_desc_normal_dist",
+                "Histogram of actual income data with fitted normal distribution N(μ, σ) overlaid. Shows how well the data fits the classic bell curve. Useful for assessing symmetry and normality.",
+            ),
+            "dist-student-t": (
+                "chart_desc_student_t_dist",
+                "Histogram of standardized actual data with Student's t-distribution (df=5) and normal N(0,1) overlaid. The t-distribution has heavier tails. Helps assess if data has more outliers than normal distribution predicts.",
+            ),
+            "quantiles-distance": (
+                "chart_desc_quantiles_distance",
+                "Bar chart of |Q1−mean|, |Q2−mean|, |Q3−mean| for the selected numeric column. Helps see how far quartiles sit from the average.",
+            ),
+        }
+
+        if chart_id not in mapping:
+            raise ValueError(f"Unknown chart id: {chart_id}")
+
+        key, default_text = mapping[chart_id]
+        description = LanguagesControllerInstance.get_translation(language, key, default_text)
+
+
+        try:
+            col = request.args.get('column') if request else None
+            compare = str(request.args.get('compare', '0')).lower() in ('1','true','yes') if request else False
+        except Exception:
+            col, compare = None, False
+
+        if chart_id == 'quantiles-distance':
+            col_label_map = {
+                'income': LanguagesControllerInstance.get_translation(language, 'chart_label_income', 'Income'),
+                'loan_amount': LanguagesControllerInstance.get_translation(language, 'chart_label_loan_amount', 'Loan Amount'),
+                'credit_score': LanguagesControllerInstance.get_translation(language, 'chart_label_credit_score', 'Credit Score'),
+                'years_employed': LanguagesControllerInstance.get_translation(language, 'chart_label_years_employed', 'Years Employed'),
+                'points': LanguagesControllerInstance.get_translation(language, 'chart_label_points', 'Points'),
+            }
+            label = col_label_map.get(col or 'income', (col or 'income').replace('_',' ').title())
+            extra = f"\n\nSelected column: {label}."
+            if compare:
+                extra += "\nOverlay enabled: Normal vs Prognosis."
+            description += extra
+
+        return {"chart": chart_id, "description": description}
+
     def plot_credit_vs_loan(self, language: str):
         data = self.__get_data()
         self.__apply_theme(language, style="whitegrid")
+
+        decision_map = self.__get_decision_labels(language)
+        data = data.copy()
+        data["loan_decision"] = data["loan_approved"].map(decision_map)
         plt.figure(figsize=(8, 5))
         sns.scatterplot(
             data=data,
             x="credit_score",
             y="loan_amount",
-            hue="loan_approved",
+            hue="loan_decision",
             size="income",
             sizes=(20, 200),
             alpha=0.7,
@@ -159,6 +322,7 @@ class ChartsController:
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_credit_vs_loan", "Loan Amount vs Credit Score (point size = income)"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_credit_score", "Credit Score"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_loan_amount", "Loan Amount"))
+        plt.legend(title=LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision"))
         img_bytes = self.__fig_to_bytes(plt)
         plt.close()
         return Response(img_bytes, mimetype='image/png')
@@ -167,8 +331,12 @@ class ChartsController:
         data = self.__get_data()
         self.__apply_theme(language, style="whitegrid")
         plt.figure(figsize=(7, 5))
-        sns.boxplot(data=data, x="loan_approved", y="years_employed", palette="Set2")
-        sns.stripplot(data=data, x="loan_approved", y="years_employed", color="black", alpha=0.5)
+
+        decision_map = self.__get_decision_labels(language)
+        data = data.copy()
+        data["loan_decision"] = data["loan_approved"].map(decision_map)
+        sns.boxplot(data=data, x="loan_decision", y="years_employed", palette="Set2")
+        sns.stripplot(data=data, x="loan_decision", y="years_employed", color="black", alpha=0.5)
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_employment_duration", "Employment Duration vs Loan Approval Decision"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_loan_approved", "Loan Approved"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_years_employed", "Years Employed"))
@@ -191,10 +359,15 @@ class ChartsController:
         data = self.__get_data()
         self.__apply_theme(language, style="whitegrid")
         plt.figure(figsize=(8, 5))
-        sns.scatterplot(data=data, x="credit_score", y="income", hue="loan_approved", alpha=0.7)
+
+        decision_map = self.__get_decision_labels(language)
+        data = data.copy()
+        data["loan_decision"] = data["loan_approved"].map(decision_map)
+        sns.scatterplot(data=data, x="credit_score", y="income", hue="loan_decision", alpha=0.7)
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_income_vs_score", "Income vs Credit Score (by Loan Approval Decision)"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_credit_score", "Credit Score"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_income", "Income"))
+        plt.legend(title=LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision"))
         img_bytes = self.__fig_to_bytes(plt)
         plt.close()
         return Response(img_bytes, mimetype='image/png')
@@ -203,27 +376,37 @@ class ChartsController:
         data = self.__get_data()
         self.__apply_theme(language, style="whitegrid")
         plt.figure(figsize=(8, 5))
+
+        decision_map = self.__get_decision_labels(language)
+        data = data.copy()
+        data["loan_decision"] = data["loan_approved"].map(decision_map)
         sns.scatterplot(
             data=data,
             x="years_employed",
             y="income",
-            hue="loan_approved",
-            style="loan_approved",
+            hue="loan_decision",
+            style="loan_decision",
             alpha=0.7
         )
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_income_vs_years", "Income vs Employment Duration (by Loan Approval Decision)"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_years_employed", "Years Employed"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_income", "Income"))
+        plt.legend(title=LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision"))
         img_bytes = self.__fig_to_bytes(plt)
         plt.close()
         return Response(img_bytes, mimetype='image/png')
 
     def plot_credit_violin(self, language: str):
-        data = self.__get_data()
+        data = self.__get_data().copy()
         data["income_group"] = pd.qcut(data["income"], 3, labels=["low", "medium", "high"])
+
+        decision_map = self.__get_decision_labels(language)
+        income_labels = self.__get_income_group_labels(language)
+        data["loan_decision"] = data["loan_approved"].map(decision_map)
+        data["income_group_label"] = data["income_group"].astype(str).map(income_labels)
         self.__apply_theme(language, style="whitegrid")
         plt.figure(figsize=(8, 5))
-        sns.violinplot(data=data, x="loan_approved", y="credit_score", hue="income_group", split=True)
+        sns.violinplot(data=data, x="loan_decision", y="credit_score", hue="income_group_label", split=True)
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_credit_violin", "Credit Score Distribution by Income and Loan Approval Decision"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_loan_approved_question", "Was the loan approved?"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_credit_score", "Credit Score"))
@@ -246,9 +429,11 @@ class ChartsController:
         return Response(img_bytes, mimetype='image/png')
 
     def plot_pairplot_main(self, language: str):
-        data = self.__get_data()
+        data = self.__get_data().copy()
         self.__apply_theme(language, style="ticks")
-        pairplot = sns.pairplot(data, vars=["income", "credit_score", "loan_amount"], hue="loan_approved", corner=True)
+        decision_map = self.__get_decision_labels(language)
+        data["loan_decision"] = data["loan_approved"].map(decision_map)
+        pairplot = sns.pairplot(data, vars=["income", "credit_score", "loan_amount"], hue="loan_decision", corner=True)
         pairplot.fig.suptitle(LanguagesControllerInstance.get_translation(language, "chart_title_pairplot_main", "Relationships Between Key Variables"), y=1.02)
         buf = io.BytesIO()
         pairplot.savefig(buf, format="png", bbox_inches="tight")
@@ -262,8 +447,12 @@ class ChartsController:
         data = self.__get_data()
         self.__apply_theme(language, style="whitegrid")
         plt.figure(figsize=(8, 5))
-        sns.boxplot(data=data, x="loan_approved", y="loan_amount", palette="Set3")
-        sns.stripplot(data=data, x="loan_approved", y="loan_amount", color="black", alpha=0.5)
+
+        decision_map = self.__get_decision_labels(language)
+        data = data.copy()
+        data["loan_decision"] = data["loan_approved"].map(decision_map)
+        sns.boxplot(data=data, x="loan_decision", y="loan_amount", palette="Set3")
+        sns.stripplot(data=data, x="loan_decision", y="loan_amount", color="black", alpha=0.5)
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_loan_amount_box", "Loan Amount vs Loan Approval Decision"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_loan_approved", "Loan Approved"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_loan_amount", "Loan Amount"))
@@ -534,10 +723,200 @@ class ChartsController:
             sns.kdeplot(series, label=f"{label_base} (κ={kurtosis_values[col]:.2f})")
 
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_kurtosis_comparison", "Kurtosis Comparison of Selected Variables"))
-        plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_value_density", "Value / Density"))
+        plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_value_log_transformed", "Value (Log-Transformed where applicable)"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_density", "Density"))
         plt.legend()
 
         img_bytes = self.__fig_to_bytes(plt)
         plt.close()
         return Response(img_bytes, mimetype='image/png')
+
+    def plot_normal_distribution(self, language: str):
+        self.__set_font_for_language(language)
+        data = self.__get_data()
+
+        income = data['income'].dropna()
+        mean_val = income.mean()
+        std_val = income.std()
+
+        plt.figure(figsize=(8, 5))
+        plt.hist(income, bins=50, density=True, alpha=0.6, color='skyblue', label=LanguagesControllerInstance.get_translation(language, 'chart_label_actual_data', 'Actual Data'))
+
+        x = np.linspace(income.min(), income.max(), 400)
+        y = norm.pdf(x, mean_val, std_val)
+        plt.plot(x, y, 'r-', linewidth=2, label=f'N({mean_val:.0f}, {std_val:.0f})')
+
+        plt.title(LanguagesControllerInstance.get_translation(language, 'chart_title_normal_dist', 'Gaussian (Normal) Distribution'))
+        plt.xlabel(LanguagesControllerInstance.get_translation(language, 'chart_label_income', 'Income'))
+        plt.ylabel(LanguagesControllerInstance.get_translation(language, 'chart_label_density', 'Density'))
+        plt.legend(loc='upper left', frameon=False)
+        plt.tight_layout()
+        return Response(self.__fig_to_bytes(plt), mimetype='image/png')
+
+    def plot_student_t_distribution(self, language: str):
+        self.__set_font_for_language(language)
+        data = self.__get_data()
+
+        income = data['income'].dropna()
+        standardized = (income - income.mean()) / income.std()
+
+        plt.figure(figsize=(8, 5))
+        actual_label = LanguagesControllerInstance.get_translation(language, 'chart_label_actual_data', 'Actual Data')
+        plt.hist(standardized, bins=50, density=True, alpha=0.6, color='lightgreen', label=f"{actual_label} ({LanguagesControllerInstance.get_translation(language, 'chart_label_standardized', 'Standardized')})")
+
+        x = np.linspace(standardized.min(), standardized.max(), 400)
+        df = 5
+        y_t = student_t.pdf(x, df)
+        y_normal = norm.pdf(x, 0, 1)
+
+        plt.plot(x, y_t, 'r-', linewidth=2, label=f"t(df={df})")
+        plt.plot(x, y_normal, 'b--', linewidth=1.5, alpha=0.7, label='N(0,1)')
+
+        plt.title(LanguagesControllerInstance.get_translation(language, 'chart_title_student_t_dist', "Student's t Distribution"))
+        plt.xlabel(LanguagesControllerInstance.get_translation(language, 'chart_label_value', 'Standardized Value'))
+        plt.ylabel(LanguagesControllerInstance.get_translation(language, 'chart_label_density', 'Density'))
+        plt.legend(loc='upper left', frameon=False)
+        plt.tight_layout()
+        return Response(self.__fig_to_bytes(plt), mimetype='image/png')
+
+    def plot_quantiles_distance(self, language: str):
+        self.__set_font_for_language(language)
+
+        col = request.args.get('column', None) if request else None
+        compare_flag = str(request.args.get('compare', '0')).lower() in ('1', 'true', 'yes') if request else False
+
+
+        def distances_for(series: pd.Series):
+            s = pd.to_numeric(series, errors='coerce').dropna()
+            if s.empty:
+                return None
+            mean_val = s.mean()
+            q1 = s.quantile(0.25)
+            q2 = s.quantile(0.5)
+            q3 = s.quantile(0.75)
+            return [abs(q1 - mean_val), abs(q2 - mean_val), abs(q3 - mean_val)]
+
+
+        q_labels = [
+            LanguagesControllerInstance.get_translation(language, 'chart_label_quartile_q1', 'Q1'),
+            LanguagesControllerInstance.get_translation(language, 'chart_label_quartile_q2', 'Q2 (Median)'),
+            LanguagesControllerInstance.get_translation(language, 'chart_label_quartile_q3', 'Q3'),
+        ]
+
+
+        col_label_map = {
+            'income': LanguagesControllerInstance.get_translation(language, 'chart_label_income', 'Income'),
+            'loan_amount': LanguagesControllerInstance.get_translation(language, 'chart_label_loan_amount', 'Loan Amount'),
+            'credit_score': LanguagesControllerInstance.get_translation(language, 'chart_label_credit_score', 'Credit Score'),
+            'years_employed': LanguagesControllerInstance.get_translation(language, 'chart_label_years_employed', 'Years Employed'),
+            'points': LanguagesControllerInstance.get_translation(language, 'chart_label_points', 'Points') if hasattr(LanguagesControllerInstance, 'get_translation') else 'Points',
+        }
+
+        data = self.__get_data()
+        all_cols = ['income', 'loan_amount', 'credit_score', 'years_employed', 'points']
+        available_cols = [c for c in all_cols if c in data.columns]
+
+        if col is None:
+            if compare_flag:
+                normal_df = FilesControllerInstance.get_data()
+                prog_df = FilesControllerInstance.get_prognosis_only_data()
+                if normal_df is None or prog_df is None:
+                    raise ValueError("Data not available for comparison")
+
+                fig, axes = plt.subplots(1, 5, figsize=(20, 4))
+                x = np.arange(len(q_labels))
+                width = 0.35
+
+                for idx, c in enumerate(available_cols):
+                    ax = axes[idx]
+                    if c not in normal_df.columns or c not in prog_df.columns:
+                        ax.axis('off')
+                        continue
+                    d_normal = distances_for(normal_df[c])
+                    d_prog = distances_for(prog_df[c])
+                    if d_normal is None or d_prog is None:
+                        ax.axis('off')
+                        continue
+
+                    rects1 = ax.bar(x - width/2, d_normal, width, label=LanguagesControllerInstance.get_translation(language, 'chart_legend_mode_normal', 'Normal'), color='#64b5f6')
+                    rects2 = ax.bar(x + width/2, d_prog, width, label=LanguagesControllerInstance.get_translation(language, 'chart_legend_mode_prognosis', 'Prognosis'), color='#81c784')
+                    ax.set_xticks(x)
+                    ax.set_xticklabels(q_labels, fontsize=8)
+
+                    for r in list(rects1) + list(rects2):
+                        v = r.get_height()
+                        ax.text(r.get_x() + r.get_width()/2, v, f"{v:.2f}", ha='center', va='bottom', fontsize=8)
+
+                    ax.set_title(col_label_map.get(c, c.replace('_', ' ').title()), fontsize=11, fontweight='bold')
+                    ax.set_ylabel(LanguagesControllerInstance.get_translation(language, 'chart_label_distance_from_mean', 'Absolute distance from mean'), fontsize=9)
+                    ax.tick_params(labelsize=8)
+
+                for idx in range(len(available_cols), 5):
+                    axes[idx].axis('off')
+                fig.suptitle(LanguagesControllerInstance.get_translation(language, 'chart_title_quantiles_distance', 'Distance of Quartiles from Mean'), fontsize=14, fontweight='bold')
+                fig.legend([LanguagesControllerInstance.get_translation(language, 'chart_legend_mode_normal', 'Normal'), LanguagesControllerInstance.get_translation(language, 'chart_legend_mode_prognosis', 'Prognosis')], loc='upper left', bbox_to_anchor=(0.02, 1.0), ncol=2, fontsize=10, frameon=False)
+                plt.tight_layout()
+                plt.subplots_adjust(wspace=0.4, top=0.88)
+                return Response(self.__fig_to_bytes(fig), mimetype='image/png')
+            else:
+                fig, axes = plt.subplots(1, 5, figsize=(20, 4))
+                for idx, c in enumerate(available_cols):
+                    ax = axes[idx]
+                    d = distances_for(data[c])
+                    if d is None:
+                        ax.axis('off')
+                        continue
+                    bars = ax.bar(q_labels, d, color=['#64b5f6', '#81c784', '#ffb74d'])
+                    for b, v in zip(bars, d):
+                        ax.text(b.get_x() + b.get_width()/2, v, f"{v:.2f}", ha='center', va='bottom', fontsize=9)
+                    ax.set_title(col_label_map.get(c, c.replace('_', ' ').title()), fontsize=11, fontweight='bold')
+                    ax.set_ylabel(LanguagesControllerInstance.get_translation(language, 'chart_label_distance_from_mean', 'Absolute distance from mean'), fontsize=9)
+                    ax.tick_params(labelsize=8)
+                for idx in range(len(available_cols), 5):
+                    axes[idx].axis('off')
+                fig.suptitle(LanguagesControllerInstance.get_translation(language, 'chart_title_quantiles_distance', 'Distance of Quartiles from Mean'), fontsize=14, fontweight='bold')
+                plt.tight_layout()
+                plt.subplots_adjust(wspace=0.4)
+                return Response(self.__fig_to_bytes(fig), mimetype='image/png')
+
+        col_label = col_label_map.get(col, col.replace('_', ' ').title())
+
+        if compare_flag:
+
+            normal_df = FilesControllerInstance.get_data()
+            prog_df = FilesControllerInstance.get_prognosis_only_data()
+            if normal_df is None or prog_df is None or col not in normal_df.columns or col not in prog_df.columns:
+                raise ValueError("Selected column not available for comparison")
+            d_normal = distances_for(normal_df[col])
+            d_prog = distances_for(prog_df[col])
+            if d_normal is None or d_prog is None:
+                raise ValueError("No numeric data to compute distances")
+
+            x = np.arange(len(q_labels))
+            width = 0.35
+            plt.figure(figsize=(8, 5))
+            rects1 = plt.bar(x - width/2, d_normal, width, label=LanguagesControllerInstance.get_translation(language, 'chart_legend_mode_normal', 'Normal'), color=['#64b5f6']*3)
+            rects2 = plt.bar(x + width/2, d_prog, width, label=LanguagesControllerInstance.get_translation(language, 'chart_legend_mode_prognosis', 'Prognosis'), color=['#81c784']*3)
+            plt.xticks(x, q_labels)
+            for r in list(rects1)+list(rects2):
+                v = r.get_height()
+                plt.text(r.get_x()+r.get_width()/2, v, f"{v:.2f}", ha='center', va='bottom')
+            plt.title(LanguagesControllerInstance.get_translation(language, 'chart_title_quantiles_distance', 'Distance of Quartiles from Mean'))
+            plt.ylabel(LanguagesControllerInstance.get_translation(language, 'chart_label_distance_from_mean', 'Absolute distance from mean'))
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 1.02), frameon=False)
+            plt.tight_layout()
+            return Response(self.__fig_to_bytes(plt), mimetype='image/png')
+        else:
+
+            if col not in data.columns:
+                col = 'income'
+            d = distances_for(data[col])
+            if d is None:
+                raise ValueError("No numeric data available for selected column")
+            plt.figure(figsize=(7, 5))
+            bars = plt.bar(q_labels, d, color=['#64b5f6', '#81c784', '#ffb74d'])
+            for b, v in zip(bars, d):
+                plt.text(b.get_x() + b.get_width()/2, v, f"{v:.2f}", ha='center', va='bottom')
+            plt.title(LanguagesControllerInstance.get_translation(language, 'chart_title_quantiles_distance', 'Distance of Quartiles from Mean'))
+            plt.ylabel(LanguagesControllerInstance.get_translation(language, 'chart_label_distance_from_mean', 'Absolute distance from mean'))
+            return Response(self.__fig_to_bytes(plt), mimetype='image/png')
