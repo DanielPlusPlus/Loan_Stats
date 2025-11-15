@@ -1,9 +1,93 @@
 {
-  "chernoff_legend": [
-    "Kształt twarzy: income → szersza/węższa twarz",
-    "Szerokość oczu: credit_score → większe/małe oczy",
-    "Położenie oczu: loan_amount → oczy bliżej/dalej od siebie",
-    "Długość nosa: years_employed → dłuższy/krótszy nos",
-    "Krzywizna ust: points → uśmiechnięty/smutny"
-  ]
+  "chernoff": {
+    "title": "Legenda Twarzy Chernoffa",
+    "stats": {
+      "avg": "Średnia",
+      "closest": "Kwartyl najbliższy średniej"
+    },
+    "shapes": {
+      "q1": "Q1 (Najbliżej 1. kwartyla): Koło",
+      "q2": "Q2 (Najbliżej mediany): Prostokąt",
+      "q3": "Q3 (Najbliżej 3. kwartyla): Trójkąt"
+    },
+    "attributes": {
+      "credit_score": {
+        "name": "Ocena Kredytowa",
+        "q1": "Q1: Okrągła twarz",
+        "q2": "Q2: Prostokątna twarz",
+        "q3": "Q3: Trójkątna twarz"
+      },
+      "income": {
+        "name": "Dochód",
+        "q1": "Q1: Okrągła twarz + okrągłe oczy",
+        "q2": "Q2: Prostokątna twarz + prostokątne oczy",
+        "q3": "Q3: Trójkątna twarz + trójkątne oczy"
+      },
+      "loan_amount": {
+        "name": "Kwota Pożyczki",
+        "q1": "Q1: Okrągła twarz + okrągłe usta",
+        "q2": "Q2: Prostokątna twarz + prostokątne usta",
+        "q3": "Q3: Trójkątna twarz + trójkątne usta"
+      },
+      "points": {
+        "name": "Punkty",
+        "q1": "Q1: Okrągła twarz + okrągłe uszy",
+        "q2": "Q2: Prostokątna twarz + prostokątne uszy",
+        "q3": "Q3: Trójkątna twarz + trójkątne uszy"
+      },
+      "years_employed": {
+        "name": "Lata Pracy",
+        "q1": "Q1: Okrągła twarz + okrągły nos",
+        "q2": "Q2: Prostokątna twarz + prostokątny nos",
+        "q3": "Q3: Trójkątna twarz + trójkątny nos"
+      }
+    }
+  },
+  "chart_title_income_distribution": "Rozkład dochodów według decyzji kredytowej",
+  "chart_label_income": "Dochód",
+  "chart_label_density": "Gęstość",
+  "chart_legend_loan_approved": "Kredyt zatwierdzony",
+  "chart_legend_loan_rejected": "Kredyt odrzucony",
+  "chart_title_credit_vs_loan": "Kwota kredytu vs. ocena kredytowa (rozmiar punktu = dochód)",
+  "chart_label_credit_score": "Ocena kredytowa",
+  "chart_label_loan_amount": "Kwota kredytu",
+  "chart_title_employment_duration": "Długość zatrudnienia a decyzja o zatwierdzeniu kredytu",
+  "chart_label_loan_approved": "Kredyt zatwierdzony",
+  "chart_label_years_employed": "Lata zatrudnienia",
+  "chart_title_correlation_matrix": "Macierz korelacji między zmiennymi",
+  "chart_title_income_vs_score": "Dochód vs. ocena kredytowa (według decyzji kredytowej)",
+  "chart_title_income_vs_years": "Dochód vs. długość zatrudnienia (według decyzji kredytowej)",
+  "chart_title_credit_violin": "Rozkład oceny kredytowej według dochodu i decyzji kredytowej",
+  "chart_label_loan_approved_question": "Czy kredyt został zatwierdzony?",
+  "chart_legend_income_group": "Grupa dochodowa",
+  "chart_title_avg_income_by_city": "Średni dochód według miasta i decyzji kredytowej",
+  "chart_label_avg_income": "Średni dochód",
+  "chart_label_city": "Miasto",
+  "chart_title_pairplot_main": "Zależności między kluczowymi zmiennymi",
+  "chart_title_loan_amount_box": "Kwota kredytu a decyzja o zatwierdzeniu kredytu",
+  "chart_title_credit_score_distribution": "Rozkład oceny kredytowej według decyzji kredytowej",
+  "chart_title_income_hist_density": "Histogram dochodów i rozkład gęstości",
+  "chart_label_number_of_clients": "Liczba klientów",
+  "chart_title_income_box": "Wykres pudełkowy dochodów",
+  "chart_title_income_ecdf": "Empiryczna dystrybuanta dochodów",
+  "chart_label_ecdf": "P(X ≤ x)",
+  "chart_title_income_frequency": "Częstość klientów w przedziałach dochodowych",
+  "chart_label_income_range": "Przedział dochodowy",
+  "chart_title_income_relative_frequency": "Częstość względna dochodów",
+  "chart_label_proportion": "Proporcja (%)",
+  "chart_title_loan_pie": "Udział zatwierdzonych i odrzuconych kredytów",
+  "chart_label_rejected": "Odrzucone",
+  "chart_label_approved": "Zatwierdzone",
+  "chart_title_loan_group_means": "Porównanie znormalizowanych średnich cech klienta według decyzji kredytowej",
+  "chart_label_client_feature": "Cecha klienta",
+  "chart_label_normalized_mean_value": "Znormalizowana wartość średnia (0 do 1)",
+  "chart_legend_decision": "Decyzja",
+  "chart_title_income_radar": "Wykres radarowy średnich znormalizowanych wartości",
+  "chart_title_age_pyramid": "Piramida wieku (Lata zatrudnienia ~ Wiek)",
+  "chart_label_age_range": "Przedział wiekowy",
+  "chart_title_income_line": "Wykres liniowy wartości dochodów",
+  "chart_label_client_sorted": "Klient (posortowany)",
+  "chart_title_kurtosis_comparison": "Porównanie kurtozy dla wybranych zmiennych numerycznych (dochód/kredyt po transformacji logarytmicznej)",
+  "chart_label_value_log_transformed": "Wartość (po transformacji logarytmicznej, jeśli dotyczy)",
+  "chart_legend_variable_kurtosis": "Zmienna (Kurtoza κ)"
 }

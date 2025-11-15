@@ -1,141 +1,143 @@
-import { useCallback, useEffect, useState, type ChangeEvent } from "react";
-import Alert from "react-bootstrap/Alert";
-import Card from "react-bootstrap/Card";
-import Col from "react-bootstrap/Col";
-import Form from "react-bootstrap/Form";
-import Image from "react-bootstrap/Image";
-import Row from "react-bootstrap/Row";
-import Spinner from "react-bootstrap/Spinner";
-import axios from "axios";
-import api from "../services/api";
-import useLanguage from "../hooks/useLanguage";
-import type { ApiResponse } from "../interfaces/Loan";
+import axios from 'axios';
+import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
+import Alert from 'react-bootstrap/Alert';
+import Card from 'react-bootstrap/Card';
+import Col from 'react-bootstrap/Col';
+import Form from 'react-bootstrap/Form';
+import Image from 'react-bootstrap/Image';
+import Row from 'react-bootstrap/Row';
+import Spinner from 'react-bootstrap/Spinner';
+import useLanguage from '../hooks/useLanguage';
+import api from '../services/api';
 
 interface ChartDefinition {
   id: string;
   endpoint: string;
-  label: string;
-  description?: string;
+  labelKey: string;
+  descriptionKey?: string;
 }
 
 const CHARTS: ChartDefinition[] = [
   {
-    id: "income-hist",
-    endpoint: "/income-hist",
-    label: "Rozkład dochodów wg decyzji",
-    description: "Gęstość dochodów podzielona według decyzji kredytowej.",
+    id: 'income-hist',
+    endpoint: '/income-hist',
+    labelKey: 'chart_income_hist_label',
+    descriptionKey: 'chart_income_hist_description',
   },
   {
-    id: "credit-vs-loan",
-    endpoint: "/credit-vs-loan",
-    label: "Kwota pożyczki vs. Credit Score",
+    id: 'credit-vs-loan',
+    endpoint: '/credit-vs-loan',
+    labelKey: 'chart_credit_vs_loan_label',
   },
   {
-    id: "employment-box",
-    endpoint: "/employment-box",
-    label: "Staż pracy wg decyzji",
+    id: 'employment-box',
+    endpoint: '/employment-box',
+    labelKey: 'chart_employment_box_label',
   },
   {
-    id: "corr-heatmap",
-    endpoint: "/corr-heatmap",
-    label: "Macierz korelacji",
+    id: 'corr-heatmap',
+    endpoint: '/corr-heatmap',
+    labelKey: 'chart_corr_heatmap_label',
   },
   {
-    id: "income-vs-score",
-    endpoint: "/income-vs-score",
-    label: "Dochód vs Credit Score",
+    id: 'income-vs-score',
+    endpoint: '/income-vs-score',
+    labelKey: 'chart_income_vs_score_label',
   },
   {
-    id: "income-vs-years",
-    endpoint: "/income-vs-years",
-    label: "Dochód vs staż pracy",
+    id: 'income-vs-years',
+    endpoint: '/income-vs-years',
+    labelKey: 'chart_income_vs_years_label',
   },
   {
-    id: "credit-violin",
-    endpoint: "/credit-violin",
-    label: "Rozkład Credit Score wg dochodu",
+    id: 'credit-violin',
+    endpoint: '/credit-violin',
+    labelKey: 'chart_credit_violin_label',
   },
   {
-    id: "avg-income-by-city",
-    endpoint: "/avg-income-by-city",
-    label: "Średni dochód w miastach",
+    id: 'avg-income-by-city',
+    endpoint: '/avg-income-by-city',
+    labelKey: 'chart_avg_income_by_city_label',
   },
   {
-    id: "pairplot-main",
-    endpoint: "/pairplot-main",
-    label: "Relacje między zmiennymi",
+    id: 'pairplot-main',
+    endpoint: '/pairplot-main',
+    labelKey: 'chart_pairplot_main_label',
   },
   {
-    id: "loan-amount-box",
-    endpoint: "/loan-amount-box",
-    label: "Kwota pożyczki wg decyzji",
+    id: 'loan-amount-box',
+    endpoint: '/loan-amount-box',
+    labelKey: 'chart_loan_amount_box_label',
   },
   {
-    id: "credit-score-hist",
-    endpoint: "/credit-score-hist",
-    label: "Rozkład Credit Score",
+    id: 'credit-score-hist',
+    endpoint: '/credit-score-hist',
+    labelKey: 'chart_credit_score_hist_label',
   },
   {
-    id: "income-hist-density",
-    endpoint: "/income-hist-density",
-    label: "Histogram dochodów",
+    id: 'income-hist-density',
+    endpoint: '/income-hist-density',
+    labelKey: 'chart_income_hist_density_label',
   },
   {
-    id: "income-box",
-    endpoint: "/income-box",
-    label: "Boxplot dochodów",
+    id: 'income-box',
+    endpoint: '/income-box',
+    labelKey: 'chart_income_box_label',
   },
   {
-    id: "income-ecdf",
-    endpoint: "/income-ecdf",
-    label: "Dystrybuanta dochodu",
+    id: 'income-ecdf',
+    endpoint: '/income-ecdf',
+    labelKey: 'chart_income_ecdf_label',
   },
   {
-    id: "income-frequency",
-    endpoint: "/income-frequency",
-    label: "Liczebność wg przedziałów dochodu",
+    id: 'income-frequency',
+    endpoint: '/income-frequency',
+    labelKey: 'chart_income_frequency_label',
   },
   {
-    id: "income-relative-frequency",
-    endpoint: "/income-relative-frequency",
-    label: "Częstości względne dochodu",
+    id: 'income-relative-frequency',
+    endpoint: '/income-relative-frequency',
+    labelKey: 'chart_income_relative_frequency_label',
   },
   {
-    id: "loan-pie",
-    endpoint: "/loan-pie",
-    label: "Udział decyzji kredytowych",
+    id: 'loan-pie',
+    endpoint: '/loan-pie',
+    labelKey: 'chart_loan_pie_label',
   },
   {
-    id: "loan-group-means",
-    endpoint: "/loan-group-means",
-    label: "Średnie cech wg decyzji",
+    id: 'loan-group-means',
+    endpoint: '/loan-group-means',
+    labelKey: 'chart_loan_group_means_label',
   },
   {
-    id: "income-radar",
-    endpoint: "/income-radar",
-    label: "Radar średnich wartości",
+    id: 'income-radar',
+    endpoint: '/income-radar',
+    labelKey: 'chart_income_radar_label',
   },
   {
-    id: "age-pyramid",
-    endpoint: "/age-pyramid",
-    label: "Piramida wieku (staż pracy)",
+    id: 'age-pyramid',
+    endpoint: '/age-pyramid',
+    labelKey: 'chart_age_pyramid_label',
   },
   {
-    id: "income-line",
-    endpoint: "/income-line",
-    label: "Wykres dochodu (sortowany)",
+    id: 'income-line',
+    endpoint: '/income-line',
+    labelKey: 'chart_income_line_label',
   },
   {
-    id: "kurtosis-comparison",
-    endpoint: "/kurtosis-comparison",
-    label: "Porównanie kurtozy",
+    id: 'kurtosis-comparison',
+    endpoint: '/kurtosis-comparison',
+    labelKey: 'chart_kurtosis_comparison_label',
   },
 ];
 
-const extractErrorMessage = (error: unknown): string => {
+const extractErrorMessage = (
+  error: unknown,
+  t: (key: string, fallback?: string) => string
+): string => {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as { error?: string } | undefined;
-    if (typeof data?.error === "string") {
+    if (typeof data?.error === 'string') {
       return data.error;
     }
     return error.message;
@@ -145,14 +147,12 @@ const extractErrorMessage = (error: unknown): string => {
     return error.message;
   }
 
-  return "Nie udało się pobrać wykresu.";
+  return t('chart_failed_to_fetch', 'Nie udało się pobrać wykresu.');
 };
 
 const ChartsTab = () => {
-  const { language } = useLanguage();
-  const [selectedChart, setSelectedChart] = useState<string>(
-    CHARTS[0]?.id ?? ""
-  );
+  const { language, t } = useLanguage();
+  const [selectedChart, setSelectedChart] = useState<string>(CHARTS[0]?.id ?? '');
   const [chartSrc, setChartSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -171,39 +171,38 @@ const ChartsTab = () => {
       if (!definition) {
         setLoading(false);
         setChartSrc(null);
-        setError("Nieznany wykres.");
+        setError(t('chart_unknown_chart', 'Nieznany wykres.'));
         return;
       }
 
       try {
-        const response = await api.get<ApiResponse<string>>(
-          definition.endpoint,
-          {
-            params: { language },
-          }
-        );
+        const response = await api.get(definition.endpoint, {
+          params: { language },
+          responseType: 'blob',
+        });
 
-        if (!response.data.success) {
-          throw new Error(
-            response.data.error ?? "Serwer zwrócił niepoprawną odpowiedź."
-          );
-        }
-
-        setChartSrc(`data:image/png;base64,${response.data.result}`);
+        const imageUrl = URL.createObjectURL(response.data);
+        setChartSrc(imageUrl);
       } catch (requestError) {
         setChartSrc(null);
-        setError(extractErrorMessage(requestError));
+        setError(extractErrorMessage(requestError, t));
       } finally {
         setLoading(false);
       }
     },
-    [language]
+    [language, t]
   );
 
   useEffect(() => {
     if (selectedChart) {
       void fetchChart(selectedChart);
     }
+
+    return () => {
+      if (chartSrc && chartSrc.startsWith('blob:')) {
+        URL.revokeObjectURL(chartSrc);
+      }
+    };
   }, [fetchChart, selectedChart]);
 
   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -217,20 +216,20 @@ const ChartsTab = () => {
       <Row className="gy-3">
         <Col md={4} lg={3}>
           <Card>
-            <Card.Header>Wybierz wykres</Card.Header>
+            <Card.Header>{t('chart_select_chart', 'Wybierz wykres')}</Card.Header>
             <Card.Body>
               <Form.Group controlId="chart-selector">
                 <Form.Select value={selectedChart} onChange={handleChange}>
                   {CHARTS.map((chart) => (
                     <option key={chart.id} value={chart.id}>
-                      {chart.label}
+                      {t(chart.labelKey, chart.id)}
                     </option>
                   ))}
                 </Form.Select>
               </Form.Group>
-              {selectedDefinition?.description && (
+              {selectedDefinition?.descriptionKey && (
                 <small className="text-muted d-block mt-2">
-                  {selectedDefinition.description}
+                  {t(selectedDefinition.descriptionKey, '')}
                 </small>
               )}
             </Card.Body>
@@ -238,7 +237,7 @@ const ChartsTab = () => {
         </Col>
         <Col md={8} lg={9}>
           <Card className="h-100">
-            <Card.Header>Podgląd</Card.Header>
+            <Card.Header>{t('chart_preview', 'Podgląd')}</Card.Header>
             <Card.Body className="d-flex align-items-center justify-content-center">
               {loading ? (
                 <Spinner animation="border" role="status" />
@@ -247,13 +246,9 @@ const ChartsTab = () => {
                   {error}
                 </Alert>
               ) : chartSrc ? (
-                <Image
-                  src={chartSrc}
-                  alt={selectedDefinition?.label ?? "Wykres"}
-                  fluid
-                />
+                <Image src={chartSrc} alt={t(selectedDefinition?.labelKey ?? '', 'Wykres')} fluid />
               ) : (
-                <span>Wybierz wykres, aby go wyświetlić.</span>
+                <span>{t('chart_select_to_display', 'Wybierz wykres, aby go wyświetlić.')}</span>
               )}
             </Card.Body>
           </Card>

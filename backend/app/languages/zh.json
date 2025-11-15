@@ -1,9 +1,93 @@
 {
-  "chernoff_legend": [
-    "脸型: 收入 → 脸更宽/更窄",
-    "眼睛宽度: 信用评分 → 眼睛更大/更小",
-    "眼睛位置: 贷款金额 → 眼睛更近/更远",
-    "鼻子长度: 工作年限 → 鼻子更长/更短",
-    "嘴唇弯曲: 分数 → 微笑/皱眉"
-  ]
+  "chernoff": {
+    "title": "切尔诺夫脸图例",
+    "stats": {
+      "avg": "平均",
+      "closest": "最接近平均值的四分位数"
+    },
+    "shapes": {
+      "q1": "Q1 (最接近第一四分位数): 圆形",
+      "q2": "Q2 (最接近中位数): 矩形",
+      "q3": "Q3 (最接近第三四分位数): 三角形"
+    },
+    "attributes": {
+      "credit_score": {
+        "name": "信用评分",
+        "q1": "Q1: 圆形脸",
+        "q2": "Q2: 矩形脸",
+        "q3": "Q3: 三角形脸"
+      },
+      "income": {
+        "name": "收入",
+        "q1": "Q1: 圆形脸 + 圆形眼睛",
+        "q2": "Q2: 矩形脸 + 矩形眼睛",
+        "q3": "Q3: 三角形脸 + 三角形眼睛"
+      },
+      "loan_amount": {
+        "name": "贷款金额",
+        "q1": "Q1: 圆形脸 + 圆形嘴巴",
+        "q2": "Q2: 矩形脸 + 矩形嘴巴",
+        "q3": "Q3: 三角形脸 + 三角形嘴巴"
+      },
+      "points": {
+        "name": "分数",
+        "q1": "Q1: 圆形脸 + 圆形耳朵",
+        "q2": "Q2: 矩形脸 + 矩形耳朵",
+        "q3": "Q3: 三角形脸 + 三角形耳朵"
+      },
+      "years_employed": {
+        "name": "工作年限",
+        "q1": "Q1: 圆形脸 + 圆形鼻子",
+        "q2": "Q2: 矩形脸 + 矩形鼻子",
+        "q3": "Q3: 三角形脸 + 三角形鼻子"
+      }
+    }
+  },
+  "chart_title_income_distribution": "贷款审批决定下的收入分布",
+  "chart_label_income": "收入",
+  "chart_label_density": "密度",
+  "chart_legend_loan_approved": "贷款已批准",
+  "chart_legend_loan_rejected": "贷款已拒绝",
+  "chart_title_credit_vs_loan": "贷款金额与信用评分（点大小=收入）",
+  "chart_label_credit_score": "信用评分",
+  "chart_label_loan_amount": "贷款金额",
+  "chart_title_employment_duration": "就业年限与贷款审批决定",
+  "chart_label_loan_approved": "贷款已批准",
+  "chart_label_years_employed": "就业年限",
+  "chart_title_correlation_matrix": "变量间的相关矩阵",
+  "chart_title_income_vs_score": "收入与信用评分（按贷款审批决定）",
+  "chart_title_income_vs_years": "收入与就业年限（按贷款审批决定）",
+  "chart_title_credit_violin": "信用评分分布（按收入和贷款审批决定）",
+  "chart_label_loan_approved_question": "贷款是否获批？",
+  "chart_legend_income_group": "收入组",
+  "chart_title_avg_income_by_city": "按城市和贷款审批决定划分的平均收入",
+  "chart_label_avg_income": "平均收入",
+  "chart_label_city": "城市",
+  "chart_title_pairplot_main": "关键变量之间的关系",
+  "chart_title_loan_amount_box": "贷款金额与贷款审批决定",
+  "chart_title_credit_score_distribution": "信用评分分布（按贷款审批决定）",
+  "chart_title_income_hist_density": "收入直方图和密度分布",
+  "chart_label_number_of_clients": "客户数量",
+  "chart_title_income_box": "收入箱线图",
+  "chart_title_income_ecdf": "收入的经验累积分布函数",
+  "chart_label_ecdf": "P(X ≤ x)",
+  "chart_title_income_frequency": "收入范围内的客户频率",
+  "chart_label_income_range": "收入范围",
+  "chart_title_income_relative_frequency": "收入的相对频率",
+  "chart_label_proportion": "比例 (%)",
+  "chart_title_loan_pie": "已批准和已拒绝贷款的份额",
+  "chart_label_rejected": "已拒绝",
+  "chart_label_approved": "已批准",
+  "chart_title_loan_group_means": "按贷款决定比较标准化平均客户特征",
+  "chart_label_client_feature": "客户特征",
+  "chart_label_normalized_mean_value": "标准化平均值（0到1）",
+  "chart_legend_decision": "决定",
+  "chart_title_income_radar": "平均标准化值的雷达图",
+  "chart_title_age_pyramid": "年龄金字塔（就业年限~年龄）",
+  "chart_label_age_range": "年龄范围",
+  "chart_title_income_line": "收入值的折线图",
+  "chart_label_client_sorted": "客户（已排序）",
+  "chart_title_kurtosis_comparison": "选定数值变量的峰度比较（对数转换后的收入/贷款）",
+  "chart_label_value_log_transformed": "值（适用时进行对数转换）",
+  "chart_legend_variable_kurtosis": "变量（峰度 κ）"
 }

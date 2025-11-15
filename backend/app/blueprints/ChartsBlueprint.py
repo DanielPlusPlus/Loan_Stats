@@ -9,211 +9,675 @@ ChartsController = ChartsController()
 
 @ChartsBlueprint.route("/income-hist")
 def income_hist():
-    """Rozkład dochodów wg decyzji kredytowej."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Distribution of income by credit decision.
+    This endpoint returns a histogram of income distribution based on credit decisions.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        required: false
+        default: en
+        description: The language for the response messages.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Bad request, e.g., invalid language parameter.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_income_histogram)
+    return ChartsController.plot_income_histogram(language)
 
 
 @ChartsBlueprint.route("/credit-vs-loan")
 def credit_vs_loan():
-    """Kwota pożyczki vs Credit Score z podziałem na decyzję i dochód."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Loan Amount vs Credit Score by decision and income.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_credit_vs_loan)
+    return ChartsController.plot_credit_vs_loan(language)
 
 
 @ChartsBlueprint.route("/employment-box")
 def employment_box():
-    """Staż pracy wg decyzji kredytowej."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Years of employment by credit decision.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_employment_boxplot)
+    return ChartsController.plot_employment_boxplot(language)
 
 
 @ChartsBlueprint.route("/corr-heatmap")
 def corr_heatmap():
-    """Macierz korelacji zmiennych numerycznych."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Correlation matrix of numeric variables.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_correlation_heatmap)
+    return ChartsController.plot_correlation_heatmap(language)
 
 
 @ChartsBlueprint.route("/income-vs-score")
 def income_vs_score():
-    """Dochód vs Credit Score wg decyzji kredytowej."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Income vs Credit Score by credit decision.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_income_vs_score)
+    return ChartsController.plot_income_vs_score(language)
 
 
 @ChartsBlueprint.route("/income-vs-years")
 def income_vs_years():
-    """Dochód vs staż pracy wg decyzji kredytowej."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Income vs years of employment by credit decision.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_income_vs_years)
+    return ChartsController.plot_income_vs_years(language)
 
 
 @ChartsBlueprint.route("/credit-violin")
 def credit_violin():
-    """Rozkład Credit Score wg decyzji i grup dochodu."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Credit Score distribution by decision and income group.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_credit_violin)
+    return ChartsController.plot_credit_violin(language)
 
 
 @ChartsBlueprint.route("/avg-income-by-city")
 def avg_income_by_city():
-    """Średni dochód w miastach wg decyzji kredytowej."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Average income in cities by credit decision.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_avg_income_by_city)
+    return ChartsController.plot_avg_income_by_city(language)
 
 
 @ChartsBlueprint.route("/pairplot-main")
 def pairplot_main():
-    """Pairplot dla kluczowych zmiennych."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Pairplot for key variables.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_pairplot_main)
+    return ChartsController.plot_pairplot_main(language)
 
 
 @ChartsBlueprint.route("/loan-amount-box")
 def loan_amount_box():
-    """Kwota pożyczki wg decyzji kredytowej."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Loan amount by credit decision.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_loan_amount_box)
+    return ChartsController.plot_loan_amount_box(language)
 
 
 @ChartsBlueprint.route("/credit-score-hist")
 def credit_score_hist():
-    """Rozkład Credit Score wg decyzji kredytowej."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Credit Score distribution by credit decision.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_credit_score_histogram)
+    return ChartsController.plot_credit_score_histogram(language)
 
 
 @ChartsBlueprint.route("/income-hist-density")
 def income_hist_density():
-    """Histogram i funkcja gęstości dochodów."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Income histogram and density function.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_income_hist_and_density)
+    return ChartsController.plot_income_hist_and_density(language)
 
 
 @ChartsBlueprint.route("/income-box")
 def income_box():
-    """Wykres pudełkowy dochodów."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Income box plot.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_income_box)
+    return ChartsController.plot_income_box(language)
 
 
 @ChartsBlueprint.route("/income-ecdf")
 def income_ecdf():
-    """Dystrybuanta empiryczna dochodu."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Empirical cumulative distribution function of income.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_income_ecdf)
+    return ChartsController.plot_income_ecdf(language)
 
 
 @ChartsBlueprint.route("/income-frequency")
 def income_frequency():
-    """Wykres liczebności klientów wg przedziałów dochodu."""'''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Client frequency in income ranges.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_income_frequency)
+    return ChartsController.plot_income_frequency(language)
 
 
 @ChartsBlueprint.route("/income-relative-frequency")
 def income_relative_frequency():
-    """Wykres częstości względnych dochodów."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Relative frequency of incomes.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_income_relative_frequency)
+    return ChartsController.plot_income_relative_frequency(language)
 
 
 @ChartsBlueprint.route("/loan-pie")
 def loan_pie():
-    """Wykres kołowy decyzji kredytowych."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Pie chart of credit decisions.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_loan_pie)
+    return ChartsController.plot_loan_pie(language)
 
 
 @ChartsBlueprint.route("/loan-group-means")
 def loan_group_means():
-    """Porównanie średnich wartości cech klientów wg decyzji kredytowej."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Comparison of mean client features by credit decision.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_loan_group_means)
+    return ChartsController.plot_loan_group_means(language)
 
 
 @ChartsBlueprint.route("/income-radar")
 def income_radar():
-    """Wykres radarowy średnich miar."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Radar chart of average measures.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_income_radar)
+    return ChartsController.plot_income_radar(language)
 
 
 @ChartsBlueprint.route("/age-pyramid")
 def age_pyramid():
-    """Piramida wieku (symulacja: staż pracy ~ wiek)."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Age pyramid (simulation: years of employment ~ age).
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_age_pyramid)
+    return ChartsController.plot_age_pyramid(language)
 
 
 @ChartsBlueprint.route("/income-line")
 def income_line():
-    """Wykres łamany dochodów."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Line plot of incomes.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_income_line)
+    return ChartsController.plot_income_line(language)
 
 
 '''
@@ -230,9 +694,31 @@ def combined_distribution(column):
 
 @ChartsBlueprint.route("/kurtosis-comparison")
 def kurtosis_comparison():
-    """Porównanie typów kurtozy (mezokurtyczny, lepto-, platy-)."""
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Comparison of kurtosis types (mesokurtic, leptokurtic, platykurtic).
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the chart titles and labels.
+    responses:
+      200:
+        description: A PNG image of the chart.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    tags:
+      - Charts
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(ChartsController.plot_kurtosis_comparison)
+    return ChartsController.plot_kurtosis_comparison(language)

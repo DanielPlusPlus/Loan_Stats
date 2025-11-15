@@ -1,0 +1,65 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: loan_stats_backend
+    ports:
+      - '5001:5001'
+    volumes:
+      - ./certs:/app/certs:ro
+      - ./backend/app:/app/app
+      - ./backend/main.py:/app/main.py
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - PYTHONUNBUFFERED=1
+    networks:
+      - loan_stats_network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import requests; requests.get('https://localhost:5001/headers', verify=False)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: loan_stats_frontend
+    ports:
+      - '3443:443'
+    volumes:
+      - ./certs:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    networks:
+      - loan_stats_network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'https://localhost:443',
+          '--no-check-certificate',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  loan_stats_network:
+    driver: bridge

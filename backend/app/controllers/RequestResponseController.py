@@ -1,6 +1,7 @@
 from flask import request, jsonify, Response
 from typing import Callable, Any, Optional, Tuple
 import numpy as np
+import base64
 
 
 class RequestResponseController:
@@ -52,3 +53,4 @@ class RequestResponseController:
             return jsonify({"success": True, "result": result}), 200
         except Exception as e:
             return jsonify({"success": False, "error": str(e)}), 400
+

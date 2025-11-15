@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, make_response
 from app.controllers.RequestResponseController import RequestResponseController
 from app.controllers.ChernoffController import ChernoffController
 
@@ -9,8 +9,36 @@ ChernoffController = ChernoffController()
 
 @ChernoffBlueprint.route("/chernoff-faces")
 def get_chernoff_faces():
-    '''przyjmuje jezyk jako parametr: en, de, pl, zh, ko'''
+    """
+    Generates Chernoff faces based on the dataset.
+    ---
+    parameters:
+      - name: language
+        in: query
+        type: string
+        required: false
+        default: en
+        enum: ['en', 'de', 'pl', 'zh', 'ko']
+        description: The language for the legend.
+    responses:
+      200:
+        description: A PNG image of Chernoff faces.
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid language provided.
+    """
     language, err, code = RequestResponseController.validate_language_request()
     if err:
         return err, code
-    return RequestResponseController.make_data_response(lambda: ChernoffController.generate_chernoff_faces(language))
+
+    response = ChernoffController.generate_chernoff_faces(language)
+
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+
+    return response
