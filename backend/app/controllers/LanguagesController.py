@@ -16,8 +16,17 @@ class LanguagesController:
         return translations
 
     def get_translation(self, lang_code, key, default_text=None):
+        if os.environ.get('RELOAD_TRANSLATIONS_EACH_REQUEST') == '1':
+            self.translations = self._load_translations()
+
         if lang_code in self.translations and key in self.translations[lang_code]:
             return self.translations[lang_code][key]
+
+        if os.environ.get('RELOAD_TRANSLATIONS_EACH_REQUEST') != '1':
+            self.translations = self._load_translations()
+            if lang_code in self.translations and key in self.translations[lang_code]:
+                return self.translations[lang_code][key]
+
         return default_text if default_text is not None else key
 
 LanguagesControllerInstance = LanguagesController()

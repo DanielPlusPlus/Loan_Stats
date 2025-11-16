@@ -150,7 +150,7 @@ const CHARTS: ChartDefinition[] = [
 const NUMERIC_COLUMNS: Array<{ key: string; labelKey: string; fallback: string }> = [
   { key: 'income', labelKey: 'data_col_income', fallback: 'Income' },
   { key: 'loan_amount', labelKey: 'data_col_loan_amount', fallback: 'Loan amount' },
-  { key: 'credit_score', labelKey: 'data_col_credit_score', fallback: 'Credit score' },
+  { key: 'credit_score', labelKey: 'data_col_credit_score', fallback: 'Credit Rating' },
   { key: 'years_employed', labelKey: 'data_col_years_employed', fallback: 'Years employed' },
   { key: 'points', labelKey: 'data_col_points', fallback: 'Points' },
 ];
@@ -308,43 +308,59 @@ const ChartsTab = ({ mode = 'normal' }: { mode?: Mode }) => {
                   </option>
                 ))}
               </Form.Select>
-              {selectedChart === 'quantiles-distance' && (
-                <div className="mt-3 d-flex gap-2 align-items-end">
-                  <Form.Group controlId="qd-column" className="flex-grow-1">
-                    <Form.Label>
-                      {t('chart_quantiles_distance_select_column', 'Select column')}
-                    </Form.Label>
-                    <Form.Select value={qdColumn} onChange={(e) => setQdColumn(e.target.value)}>
-                      {NUMERIC_COLUMNS.map((c) => (
-                        <option key={c.key} value={c.key}>
-                          {t(c.labelKey, c.fallback)}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                  <Form.Group controlId="qd-compare" className="ms-2">
-                    <Form.Check
-                      type="switch"
-                      label={t('chart_compare_overlay', 'Compare (overlay Normal vs Prognosis)')}
-                      checked={qdCompare}
-                      onChange={(e) => setQdCompare(e.currentTarget.checked)}
-                    />
-                  </Form.Group>
+              {selectedChart === 'quantiles-distance' ? (
+                <>
+                  <div className="mt-3">
+                    <Form.Group controlId="qd-column" className="mb-3">
+                      <Form.Label className="fw-semibold">
+                        {t('chart_quantiles_distance_select_column', 'Select column')}
+                      </Form.Label>
+                      <Form.Select value={qdColumn} onChange={(e) => setQdColumn(e.target.value)}>
+                        {NUMERIC_COLUMNS.map((c) => (
+                          <option key={c.key} value={c.key}>
+                            {t(c.labelKey, c.fallback)}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                    <Form.Group controlId="qd-compare" className="mb-2">
+                      <Form.Check
+                        type="switch"
+                        label={t('chart_compare_overlay', 'Compare (overlay Normal vs Prognosis)')}
+                        checked={qdCompare}
+                        onChange={(e) => setQdCompare(e.currentTarget.checked)}
+                      />
+                    </Form.Group>
+                    <div style={{ minHeight: 22 }}>
+                      {descLoading ? (
+                        <small className="text-muted">
+                          {t('chart_desc_loading', 'Loading description...')}
+                        </small>
+                      ) : descError ? (
+                        <small className="text-danger">{descError}</small>
+                      ) : description ? (
+                        <small className="text-muted d-block" style={{ whiteSpace: 'pre-line' }}>
+                          {description}
+                        </small>
+                      ) : null}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-2" style={{ minHeight: 22 }}>
+                  {descLoading ? (
+                    <small className="text-muted">
+                      {t('chart_desc_loading', 'Loading description...')}
+                    </small>
+                  ) : descError ? (
+                    <small className="text-danger">{descError}</small>
+                  ) : description ? (
+                    <small className="text-muted d-block" style={{ whiteSpace: 'pre-line' }}>
+                      {description}
+                    </small>
+                  ) : null}
                 </div>
               )}
-              <div className="mt-2" style={{ minHeight: 22 }}>
-                {descLoading ? (
-                  <small className="text-muted">
-                    {t('chart_desc_loading', 'Loading description...')}
-                  </small>
-                ) : descError ? (
-                  <small className="text-danger">{descError}</small>
-                ) : description ? (
-                  <small className="text-muted d-block" style={{ whiteSpace: 'pre-line' }}>
-                    {description}
-                  </small>
-                ) : null}
-              </div>
             </Form.Group>
           </div>
 

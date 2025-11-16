@@ -159,12 +159,47 @@ class ChartsController:
         data = self.__get_data()
         self.__apply_theme(language, style="whitegrid")
         plt.figure(figsize=(8, 5))
-        sns.kdeplot(data=data[data["loan_approved"] == True]["income"], label=LanguagesControllerInstance.get_translation(language, "chart_legend_loan_approved", "Loan Approved"))
-        sns.kdeplot(data=data[data["loan_approved"] == False]["income"], label=LanguagesControllerInstance.get_translation(language, "chart_legend_loan_rejected", "Loan Rejected"))
+        approved_mask = data['loan_approved'].astype(str).str.lower().isin([
+            'true', '1', 'yes', 'tak', 'ja', '是', '예'
+        ]) | (data['loan_approved'] == True) | (data['loan_approved'] == 1)
+        rejected_mask = data['loan_approved'].astype(str).str.lower().isin([
+            'false', '0', 'no', 'nie', 'nein', '否', '아니오'
+        ]) | (data['loan_approved'] == False) | (data['loan_approved'] == 0)
+
+        approved_income = data.loc[approved_mask, 'income'].dropna()
+        rejected_income = data.loc[rejected_mask, 'income'].dropna()
+
+        approved_label = LanguagesControllerInstance.get_translation(language, "chart_legend_loan_approved", "Loan Approved")
+        rejected_label = LanguagesControllerInstance.get_translation(language, "chart_legend_loan_rejected", "Loan Rejected")
+
+        def plot_group(values, label, color):
+            if values.empty:
+                return
+            unique_vals = values.unique()
+            if len(values) >= 2 and len(unique_vals) > 1:
+                sns.histplot(values, bins=min(30, max(5, int(len(unique_vals) * 1.5))),
+                             kde=True, stat='density', alpha=0.35, color=color, label=label)
+            else:
+                x_val = unique_vals[0]
+                plt.axvline(x_val, color=color, linestyle='--', linewidth=2, label=f"{label} (single)")
+                plt.scatter([x_val], [0], color=color, marker='o')
+
+        plot_group(approved_income, approved_label, '#99ff99')
+        plot_group(rejected_income, rejected_label, '#ff9999')
+
+        handles, labels = plt.gca().get_legend_handles_labels()
+        if approved_income.empty and approved_label not in labels:
+            handles.append(matplotlib.lines.Line2D([0], [0], color='#99ff99', linestyle='--'))
+            labels.append(f"{approved_label} (none)")
+        if rejected_income.empty and rejected_label not in labels:
+            handles.append(matplotlib.lines.Line2D([0], [0], color='#ff9999', linestyle='--'))
+            labels.append(f"{rejected_label} (none)")
+        if handles:
+            plt.legend(handles, labels)
+
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_income_distribution", "Income Distribution by Loan Approval Decision"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_income", "Income"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_density", "Density"))
-        plt.legend()
         img_bytes = self.__fig_to_bytes(plt)
         plt.close()
         return Response(img_bytes, mimetype='image/png')
@@ -294,11 +329,8 @@ class ChartsController:
                 'years_employed': LanguagesControllerInstance.get_translation(language, 'chart_label_years_employed', 'Years Employed'),
                 'points': LanguagesControllerInstance.get_translation(language, 'chart_label_points', 'Points'),
             }
-            label = col_label_map.get(col or 'income', (col or 'income').replace('_',' ').title())
-            extra = f"\n\nSelected column: {label}."
             if compare:
-                extra += "\nOverlay enabled: Normal vs Prognosis."
-            description += extra
+                description += ""
 
         return {"chart": chart_id, "description": description}
 
@@ -309,8 +341,9 @@ class ChartsController:
         decision_map = self.__get_decision_labels(language)
         data = data.copy()
         data["loan_decision"] = data["loan_approved"].map(decision_map)
-        plt.figure(figsize=(8, 5))
-        sns.scatterplot(
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        scatter = sns.scatterplot(
             data=data,
             x="credit_score",
             y="loan_amount",
@@ -318,11 +351,33 @@ class ChartsController:
             size="income",
             sizes=(20, 200),
             alpha=0.7,
+            ax=ax,
+            legend=False
         )
+
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_credit_vs_loan", "Loan Amount vs Credit Score (point size = income)"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_credit_score", "Credit Score"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_loan_amount", "Loan Amount"))
-        plt.legend(title=LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision"))
+
+        decision_label = LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision")
+        income_label = LanguagesControllerInstance.get_translation(language, "chart_label_income", "Income")
+
+        from matplotlib.lines import Line2D
+        decision_colors = sns.color_palette()[:len(data["loan_decision"].unique())]
+        decision_elements = [Line2D([0], [0], marker='o', color='w', markerfacecolor=color,
+                                   markersize=8, alpha=0.7, label=decision)
+                           for decision, color in zip(sorted(data["loan_decision"].unique()), decision_colors)]
+
+        size_elements = [Line2D([0], [0], marker='o', color='w', markerfacecolor='gray',
+                               markersize=size, alpha=0.7, label=f'{income:,}')
+                        for income, size in [(30000, 6), (60000, 9), (90000, 12)]]
+
+        legend1 = ax.legend(handles=decision_elements, title=decision_label,
+                          loc='upper left', framealpha=0.9)
+        ax.add_artist(legend1)
+        ax.legend(handles=size_elements, title=income_label,
+                 loc='lower right', framealpha=0.9)
+
         img_bytes = self.__fig_to_bytes(plt)
         plt.close()
         return Response(img_bytes, mimetype='image/png')
@@ -335,7 +390,7 @@ class ChartsController:
         decision_map = self.__get_decision_labels(language)
         data = data.copy()
         data["loan_decision"] = data["loan_approved"].map(decision_map)
-        sns.boxplot(data=data, x="loan_decision", y="years_employed", palette="Set2")
+        sns.boxplot(data=data, x="loan_decision", y="years_employed", hue="loan_decision", palette="Set2", legend=False)
         sns.stripplot(data=data, x="loan_decision", y="years_employed", color="black", alpha=0.5)
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_employment_duration", "Employment Duration vs Loan Approval Decision"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_loan_approved", "Loan Approved"))
@@ -349,7 +404,21 @@ class ChartsController:
         self.__apply_theme(language, style="whitegrid")
         plt.figure(figsize=(8, 6))
         corr = data.corr(numeric_only=True)
-        sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f")
+        col_label_map = {
+            'income': LanguagesControllerInstance.get_translation(language, 'chart_label_income', 'Income'),
+            'loan_amount': LanguagesControllerInstance.get_translation(language, 'chart_label_loan_amount', 'Loan Amount'),
+            'credit_score': LanguagesControllerInstance.get_translation(language, 'chart_label_credit_score', 'Credit Score'),
+            'years_employed': LanguagesControllerInstance.get_translation(language, 'chart_label_years_employed', 'Years Employed'),
+            'points': LanguagesControllerInstance.get_translation(language, 'chart_label_points', 'Points'),
+            'loan_approved': LanguagesControllerInstance.get_translation(language, 'chart_label_loan_approved', 'Loan Approved')
+        }
+        translated = [col_label_map.get(c, c.replace('_', ' ').title()) for c in corr.columns]
+        corr_translated = corr.copy()
+        corr_translated.columns = translated
+        corr_translated.index = translated
+        sns.heatmap(corr_translated, annot=True, cmap="coolwarm", fmt=".2f")
+        plt.xticks(rotation=45, ha='right')
+        plt.yticks(rotation=0)
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_correlation_matrix", "Correlation Matrix Between Variables"))
         img_bytes = self.__fig_to_bytes(plt)
         plt.close()
@@ -420,10 +489,26 @@ class ChartsController:
         self.__apply_theme(language, style="whitegrid")
         avg_income = data.groupby(["city", "loan_approved"])["income"].mean().unstack()
         plt.figure(figsize=(12, 6))
-        avg_income.plot(kind="bar")
+        ax = avg_income.plot(kind="bar")
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_avg_income_by_city", "Average Income by City and Loan Approval Decision"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_avg_income", "Average Income"))
+        plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_city", "City"))
         plt.xticks(rotation=45, ha="right")
+        handles, labels = ax.get_legend_handles_labels()
+        decision_map = self.__get_decision_labels(language)
+        translated_labels = []
+        for l in labels:
+            ll = l.strip()
+            low = ll.lower()
+            if ll in decision_map:
+                translated_labels.append(decision_map[ll])
+            elif low in ("true", "1", "yes"):
+                translated_labels.append(decision_map.get(True, ll))
+            elif low in ("false", "0", "no"):
+                translated_labels.append(decision_map.get(False, ll))
+            else:
+                translated_labels.append(ll)
+        ax.legend(handles, translated_labels, title=LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision"))
         img_bytes = self.__fig_to_bytes(plt)
         plt.close()
         return Response(img_bytes, mimetype='image/png')
@@ -433,8 +518,44 @@ class ChartsController:
         self.__apply_theme(language, style="ticks")
         decision_map = self.__get_decision_labels(language)
         data["loan_decision"] = data["loan_approved"].map(decision_map)
-        pairplot = sns.pairplot(data, vars=["income", "credit_score", "loan_amount"], hue="loan_decision", corner=True)
+        pairplot = sns.pairplot(
+            data,
+            vars=["income", "credit_score", "loan_amount"],
+            hue="loan_decision",
+            diag_kind="hist",
+            corner=False,
+            plot_kws={"alpha": 0.6, "s": 20},
+            diag_kws={"alpha": 0.7},
+            height=2.5,
+            aspect=1.1
+        )
+
+        var_labels = {
+            "income": LanguagesControllerInstance.get_translation(language, "chart_label_income", "Income"),
+            "credit_score": LanguagesControllerInstance.get_translation(language, "chart_label_credit_score", "Credit Score"),
+            "loan_amount": LanguagesControllerInstance.get_translation(language, "chart_label_loan_amount", "Loan Amount")
+        }
+
+        for i, var_y in enumerate(["income", "credit_score", "loan_amount"]):
+            for j, var_x in enumerate(["income", "credit_score", "loan_amount"]):
+                ax = pairplot.axes[i, j]
+
+                ax.tick_params(labelbottom=True, labelleft=True)
+
+                if i == 2:
+                    ax.set_xlabel(var_labels[var_x], fontsize=10)
+                else:
+                    ax.set_xlabel("")
+
+                if j == 0:
+                    ax.set_ylabel(var_labels[var_y], fontsize=10)
+                else:
+                    ax.set_ylabel("")
+
+        pairplot.fig.subplots_adjust(hspace=0.5, wspace=0.5)
         pairplot.fig.suptitle(LanguagesControllerInstance.get_translation(language, "chart_title_pairplot_main", "Relationships Between Key Variables"), y=1.02)
+        if pairplot._legend is not None:
+            pairplot._legend.set_title(LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision"))
         buf = io.BytesIO()
         pairplot.savefig(buf, format="png", bbox_inches="tight")
         buf.seek(0)
@@ -451,7 +572,7 @@ class ChartsController:
         decision_map = self.__get_decision_labels(language)
         data = data.copy()
         data["loan_decision"] = data["loan_approved"].map(decision_map)
-        sns.boxplot(data=data, x="loan_decision", y="loan_amount", palette="Set3")
+        sns.boxplot(data=data, x="loan_decision", y="loan_amount", hue="loan_decision", palette="Set3", legend=False)
         sns.stripplot(data=data, x="loan_decision", y="loan_amount", color="black", alpha=0.5)
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_loan_amount_box", "Loan Amount vs Loan Approval Decision"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_loan_approved", "Loan Approved"))
@@ -545,10 +666,9 @@ class ChartsController:
         cols = ["income", "credit_score", "loan_amount", "years_employed", "points"]
 
         group_means = data.groupby("loan_approved")[cols].mean().T
-        group_means.columns = [
-            LanguagesControllerInstance.get_translation(language, "chart_legend_rejected", "Rejected"),
-            LanguagesControllerInstance.get_translation(language, "chart_legend_approved", "Approved")
-        ]
+        rejected_label = LanguagesControllerInstance.get_translation(language, "chart_label_rejected", "Rejected")
+        approved_label = LanguagesControllerInstance.get_translation(language, "chart_label_approved", "Approved")
+        group_means.columns = [rejected_label, approved_label]
 
         normalized_means = group_means.copy()
 
@@ -557,23 +677,37 @@ class ChartsController:
             max_val = data[col].max()
 
             if (max_val - min_val) != 0:
-                normalized_means.loc[col, LanguagesControllerInstance.get_translation(language, "chart_legend_rejected", "Rejected")] = (normalized_means.loc[col, LanguagesControllerInstance.get_translation(language, "chart_legend_rejected", "Rejected")] - min_val) / (
-                        max_val - min_val)
-                normalized_means.loc[col, LanguagesControllerInstance.get_translation(language, "chart_legend_approved", "Approved")] = (normalized_means.loc[col, LanguagesControllerInstance.get_translation(language, "chart_legend_approved", "Approved")] - min_val) / (
-                        max_val - min_val)
+                normalized_means.loc[col, rejected_label] = (normalized_means.loc[col, rejected_label] - min_val) / (max_val - min_val)
+                normalized_means.loc[col, approved_label] = (normalized_means.loc[col, approved_label] - min_val) / (max_val - min_val)
             else:
-                normalized_means.loc[col, LanguagesControllerInstance.get_translation(language, "chart_legend_rejected", "Rejected")] = 1 if normalized_means.loc[col, LanguagesControllerInstance.get_translation(language, "chart_legend_rejected", "Rejected")] > 0 else 0
-                normalized_means.loc[col, LanguagesControllerInstance.get_translation(language, "chart_legend_approved", "Approved")] = 1 if normalized_means.loc[col, LanguagesControllerInstance.get_translation(language, "chart_legend_approved", "Approved")] > 0 else 0
+                normalized_means.loc[col, rejected_label] = 1 if normalized_means.loc[col, rejected_label] > 0 else 0
+                normalized_means.loc[col, approved_label] = 1 if normalized_means.loc[col, approved_label] > 0 else 0
 
         plt.figure(figsize=(8, 5))
 
-        normalized_means.plot(kind="bar", ax=plt.gca(), color=["#ff9999", "#99ff99"])
+        ax = normalized_means.plot(kind="bar", ax=plt.gca(), color=["#ff9999", "#99ff99"])
+
+        feature_label_map = {
+            "income": LanguagesControllerInstance.get_translation(language, "chart_label_income", "Income"),
+            "credit_score": LanguagesControllerInstance.get_translation(language, "chart_label_credit_score", "Credit Score"),
+            "loan_amount": LanguagesControllerInstance.get_translation(language, "chart_label_loan_amount", "Loan Amount"),
+            "years_employed": LanguagesControllerInstance.get_translation(language, "chart_label_years_employed", "Years Employed"),
+            "points": LanguagesControllerInstance.get_translation(language, "chart_label_points", "Points"),
+        }
+        translated_ticks = [feature_label_map.get(x, x.replace('_',' ').title()) for x in normalized_means.index]
+        ax.set_xticklabels(translated_ticks, rotation=45, ha="right")
 
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_loan_group_means", "Comparison of Normalized Mean Client Features by Loan Decision"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_client_feature", "Client Feature"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_normalized_mean_value", "Normalized Mean Value (0 to 1)"))
-        plt.xticks(rotation=45, ha="right")
-        plt.legend(title=LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision"))
+        legend_title = LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision")
+        leg = plt.legend(title=legend_title)
+        if leg is not None:
+            text_map = {"Rejected": rejected_label, "Approved": approved_label}
+            for txt in leg.get_texts():
+                raw = txt.get_text()
+                if raw in text_map:
+                    txt.set_text(text_map[raw])
 
         plt.ylim(0, normalized_means.values.max() * 1.1)
 
@@ -599,7 +733,13 @@ class ChartsController:
                 normalized_data[col] = 1 if max_val > 0 else 0
 
         means = normalized_data[cols].mean()
-        categories = list(means.index)
+        var_label_map = {
+            'income': LanguagesControllerInstance.get_translation(language, 'chart_label_income', 'Income'),
+            'loan_amount': LanguagesControllerInstance.get_translation(language, 'chart_label_loan_amount', 'Loan Amount'),
+            'credit_score': LanguagesControllerInstance.get_translation(language, 'chart_label_credit_score', 'Credit Score'),
+            'years_employed': LanguagesControllerInstance.get_translation(language, 'chart_label_years_employed', 'Years Employed'),
+        }
+        categories = [var_label_map.get(v, v.replace('_',' ').title()) for v in normalized_data[cols].columns]
         values = means.values
 
         values = np.concatenate((values, [values[0]]))
@@ -629,15 +769,32 @@ class ChartsController:
         self.__set_font_for_language(language)
         data = self.__get_data()
         bins = range(0, int(data["years_employed"].max()) + 5, 5)
-        male = data[data["loan_approved"] == True]["years_employed"].value_counts(bins=bins).sort_index()
-        female = -data[data["loan_approved"] == False]["years_employed"].value_counts(bins=bins).sort_index()
-        plt.figure(figsize=(8, 6))
-        plt.barh(male.index.astype(str), male.values, color="#99ff99", label=LanguagesControllerInstance.get_translation(language, "chart_legend_approved", "Approved"))
-        plt.barh(female.index.astype(str), female.values, color="#ff9999", label=LanguagesControllerInstance.get_translation(language, "chart_legend_rejected", "Rejected"))
-        plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_age_pyramid", "Age Pyramid (Years of Employment ~ Age)"))
-        plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_number_of_clients", "Number of Clients"))
-        plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_age_range", "Age Range"))
-        plt.legend()
+
+        approved_counts = data[data["loan_approved"] == True]["years_employed"].value_counts(bins=bins).sort_index()
+        rejected_counts = data[data["loan_approved"] == False]["years_employed"].value_counts(bins=bins).sort_index()
+
+        bin_labels = [f"{int(interval.left)}-{int(interval.right)}" for interval in approved_counts.index]
+
+        plt.figure(figsize=(10, 6))
+        x_positions = range(len(bin_labels))
+
+        approved_label = LanguagesControllerInstance.get_translation(language, "chart_label_approved", "Approved")
+        rejected_label = LanguagesControllerInstance.get_translation(language, "chart_label_rejected", "Rejected")
+        plt.bar(x_positions, approved_counts.values, color="#99ff99", label=approved_label)
+        plt.bar(x_positions, rejected_counts.values, color="#ff9999", label=rejected_label, bottom=approved_counts.values)
+
+        plt.xticks(x_positions, bin_labels)
+        plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_age_pyramid", "Years of Employment ~ Age"))
+        plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_number_of_clients", "Number of Clients"))
+        plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_age_range", "Age Range"))
+
+        leg = plt.legend()
+        if leg is not None:
+            for txt in leg.get_texts():
+                if txt.get_text() == 'Approved':
+                    txt.set_text(approved_label)
+                elif txt.get_text() == 'Rejected':
+                    txt.set_text(rejected_label)
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
     def plot_income_line(self, language: str):
@@ -705,6 +862,7 @@ class ChartsController:
                 series = data[col].dropna()
                 if col in ["income", "loan_amount"]:
                     series = np.log1p(series)
+                series = (series - series.mean()) / series.std()
                 transformed_series[col] = series
                 kurtosis_values[col] = series.kurtosis()
 
@@ -723,7 +881,7 @@ class ChartsController:
             sns.kdeplot(series, label=f"{label_base} (κ={kurtosis_values[col]:.2f})")
 
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_kurtosis_comparison", "Kurtosis Comparison of Selected Variables"))
-        plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_value_log_transformed", "Value (Log-Transformed where applicable)"))
+        plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_standardized_value", "Standardized Value"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_density", "Density"))
         plt.legend()
 

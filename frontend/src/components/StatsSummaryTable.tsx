@@ -8,7 +8,7 @@ import type { ApiResponse } from '../interfaces/Loan';
 import api from '../services/api';
 
 const NUMERIC_COLUMNS: Array<{ key: string; labelKey: string; fallback: string }> = [
-  { key: 'credit_score', labelKey: 'data_col_credit_score', fallback: 'Credit score' },
+  { key: 'credit_score', labelKey: 'data_col_credit_score', fallback: 'Credit Rating' },
   { key: 'income', labelKey: 'data_col_income', fallback: 'Income' },
   { key: 'loan_amount', labelKey: 'data_col_loan_amount', fallback: 'Loan amount' },
   { key: 'points', labelKey: 'data_col_points', fallback: 'Points' },

@@ -151,7 +151,7 @@ const ChernoffFacesTab = () => {
                 onChange={(e) => setFace(e.target.value)}
               >
                 <option value="all">{t('chernoff_face_all', 'Wszystkie')}</option>
-                <option value="credit_score">{t('data_col_credit_score', 'Credit score')}</option>
+                <option value="credit_score">{t('data_col_credit_score', 'Credit Rating')}</option>
                 <option value="income">{t('data_col_income', 'Income')}</option>
                 <option value="loan_amount">{t('data_col_loan_amount', 'Loan amount')}</option>
                 <option value="points">{t('data_col_points', 'Points')}</option>

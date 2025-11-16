@@ -107,5 +107,11 @@
   "data_col_points": "积分",
   "data_col_years_employed": "就业年限",
   "data_col_dataset": "数据集",
-  "chernoff_face_all": "全部"
+  "chernoff_face_all": "全部",
+  "prognosis_param_mu": "μ（均值）- 分布的中心值，新数据围绕该值生成",
+  "prognosis_param_sigma": "σ（标准差）- 数据的离散程度；表示数值偏离均值的幅度",
+  "prognosis_param_samples_info": "样本 - 为新记录从该分布生成的示例值",
+  "dist_type_normal": "正态",
+  "dist_type_uniform": "均匀",
+  "dist_type_exponential": "指数"
 }
