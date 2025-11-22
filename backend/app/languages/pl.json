@@ -1,6 +1,13 @@
 {
   "chernoff": {
     "title": "Legenda Twarzy Chernoffa",
+    "legend": {
+      "title": "Legenda Twarzy Chernoffa",
+      "q1": "Kwartyl Q1 najbliżej wartości średniej",
+      "q2": "Kwartyl Q2 najbliżej wartości średniej",
+      "q3": "Kwartyl Q3 najbliżej wartości średniej",
+      "attributes_label": "Atrybuty"
+    },
     "stats": {
       "avg": "Średnia",
       "closest": "Kwartyl najbliższy średniej"

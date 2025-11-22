@@ -6,6 +6,13 @@
   "chart_title_quantiles_distance": "사분위수의 평균으로부터 거리",
   "chernoff": {
     "title": "체르노프 얼굴 범례",
+    "legend": {
+      "title": "체르노프 얼굴 범례",
+      "q1": "평균에 가장 가까운 사분위수 Q1",
+      "q2": "평균에 가장 가까운 사분위수 Q2",
+      "q3": "평균에 가장 가까운 사분위수 Q3",
+      "attributes_label": "속성"
+    },
     "stats": {
       "avg": "평균",
       "closest": "평균에 가장 가까운 사분위수"

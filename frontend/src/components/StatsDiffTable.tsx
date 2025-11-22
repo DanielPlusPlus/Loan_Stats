@@ -46,6 +46,7 @@ const formatNumber = (v: unknown, locale: string) => {
 };
 
 interface SummaryResponse {
+  [key: string]: Record<string, number | string | null>;
   mean: Record<string, number>;
   median: Record<string, number>;
   mode: Record<string, number | string | null>;
@@ -87,8 +88,8 @@ const StatsDiffTable = () => {
         for (const m of METRICS) {
           table[m.key] = {};
           for (const col of NUMERIC_COLUMNS) {
-            const n = (normal as any)[m.key]?.[col.key];
-            const p = (prognosis as any)[m.key]?.[col.key];
+            const n = (normal as SummaryResponse)[m.key]?.[col.key];
+            const p = (prognosis as SummaryResponse)[m.key]?.[col.key];
             const canDiff = typeof n === 'number' && typeof p === 'number';
             table[m.key][col.key] = canDiff ? p - n : 0;
           }
@@ -225,11 +226,11 @@ const StatsDiffTable = () => {
                         {formatNumber(v, locale)}
                         <div className="small text-muted">
                           {t('stats_diff_cell_abs', 'Prognoza')}:{' '}
-                          {formatNumber((prognosis as any)?.[row.key]?.[c.key], locale)}
+                          {formatNumber(prognosis?.[row.key]?.[c.key], locale)}
                         </div>
                         <div className="small text-muted">
                           {t('stats_diff_cell_base', 'Normalne')}:{' '}
-                          {formatNumber((normal as any)?.[row.key]?.[c.key], locale)}
+                          {formatNumber(normal?.[row.key]?.[c.key], locale)}
                         </div>
                       </td>
                     );

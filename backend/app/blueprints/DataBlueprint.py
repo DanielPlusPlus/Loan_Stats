@@ -35,24 +35,17 @@ def get_data():
         required: false
         default: 1
         description: The page number to retrieve.
-    parameters:
       - name: mode
         in: query
         type: string
         required: false
-        default: normal
-        description: Dataset mode: 'normal' for original, 'prognosis' for generated prognosis data, or 'merged' for both combined.
-      - name: page
-        in: query
-        type: integer
-        required: false
-        default: 1
-        description: The page number to retrieve.
+        default: 'normal'
+        description: "Dataset mode to use; one of 'normal' (original data), 'prognosis' (generated prognosis), or 'merged' (combined)."
       - name: language
         in: query
         type: string
         required: false
-        description: Language code for value localization (e.g., 'pl', 'en').
+        description: The language code for value localization (e.g., 'pl', 'en').
     responses:
       200:
         description: A paginated list of records.

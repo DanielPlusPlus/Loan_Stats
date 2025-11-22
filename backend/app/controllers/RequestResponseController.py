@@ -1,7 +1,6 @@
 from flask import request, jsonify, Response
 from typing import Callable, Any, Optional, Tuple
 import numpy as np
-import base64
 
 
 class RequestResponseController:
@@ -30,26 +29,9 @@ class RequestResponseController:
             return 1, jsonify({"success": False, "error": "Invalid page number (must be positive integer)"}), 400
 
     @staticmethod
-    def make_stats_response(function_name: Callable[[str], Any], column_name: str) -> Tuple[Response, int]:
+    def make_stats_response(function_name: Callable, *args) -> Tuple[Response, int]:
         try:
-            result = function_name(column_name)
-
-            if isinstance(result, (np.integer, np.floating)):
-                result = result.item()
-            elif isinstance(result, dict):
-                result = {
-                    k: v.item() if isinstance(v, (np.integer, np.floating)) else v
-                    for k, v in result.items()
-                }
-
-            return jsonify({"success": True, "result": result}), 200
-        except Exception as e:
-            return jsonify({"success": False, "error": str(e)}), 400
-
-    @staticmethod
-    def make_stats_response_with_mode(function_name: Callable[[str, str], Any], column_name: str, mode: str) -> Tuple[Response, int]:
-        try:
-            result = function_name(column_name, mode)
+            result = function_name(*args)
 
             if isinstance(result, (np.integer, np.floating)):
                 result = result.item()

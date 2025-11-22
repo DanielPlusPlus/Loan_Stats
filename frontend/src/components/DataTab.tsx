@@ -46,7 +46,7 @@ const formatCellValue = (
   if (typeof value === 'number') return formatNumber(value, locale, 2);
   const boolNormalized = toBoolLoose(value);
   if (boolNormalized !== null)
-    return boolNormalized ? t('bool_true', 'Tak') : t('bool_false', 'Nie');
+    return boolNormalized ? t('bool_true', 'Yes') : t('bool_false', 'No');
   if (value === null || value === undefined) return '-';
   return String(value);
 };
@@ -64,7 +64,7 @@ const DataTab = () => {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [datasetFilter, setDatasetFilter] = useState<'all' | 'normal' | 'prognosis'>('all');
 
-  const locale = useMemo(() => DEFAULT_LOCALE_MAP[language] ?? 'pl-PL', [language]);
+  const locale = useMemo(() => DEFAULT_LOCALE_MAP[language] ?? 'en-US', [language]);
 
   const fetchTableData = useCallback(
     async (page: number) => {
@@ -294,7 +294,7 @@ const DataTab = () => {
                     {Object.entries(row)
                       .filter(([key]) => key !== 'dataset_code')
                       .map(([key, value]) => (
-                        <td key={key}>{renderCell(key, value, row as any)}</td>
+                        <td key={key}>{renderCell(key, value, row)}</td>
                       ))}
                   </tr>
                 ))

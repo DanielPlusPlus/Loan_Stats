@@ -6,6 +6,13 @@
   "chart_title_quantiles_distance": "Abstand der Quartile vom Mittelwert",
   "chernoff": {
     "title": "Chernoff-Gesicht-Legende",
+    "legend": {
+      "title": "Chernoff-Gesichter Legende",
+      "q1": "Quartil Q1 am nächsten am Mittelwert",
+      "q2": "Quartil Q2 am nächsten am Mittelwert",
+      "q3": "Quartil Q3 am nächsten am Mittelwert",
+      "attributes_label": "Attribute"
+    },
     "stats": {
       "avg": "Durchschnitt",
       "closest": "Quartil am nächsten zum Durchschnitt"

@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
@@ -6,83 +5,80 @@ import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Card from 'react-bootstrap/Card';
 import Form from 'react-bootstrap/Form';
 import Image from 'react-bootstrap/Image';
+import Modal from 'react-bootstrap/Modal';
 import Spinner from 'react-bootstrap/Spinner';
 import ToggleButton from 'react-bootstrap/ToggleButton';
 import useLanguage from '../hooks/useLanguage';
 import api from '../services/api';
 
-const extractErrorMessage = (error: unknown, t: (k: string, f?: string) => string): string => {
-  if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { error?: string } | undefined;
-    if (typeof data?.error === 'string') {
-      return data.error;
-    }
-    return error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return t('chernoff_failed_to_fetch', 'Nie udało się pobrać wizualizacji.');
-};
+import { extractErrorMessage } from '../utils/errors';
 
 const ChernoffFacesTab = () => {
   const { language, t } = useLanguage();
+
   const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [legendSrc, setLegendSrc] = useState<string | null>(null);
+  const [qdSrc, setQdSrc] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
+  const [legendLoading, setLegendLoading] = useState(false);
+  const [qdLoading, setQdLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [legendError, setLegendError] = useState<string | null>(null);
+  const [qdError, setQdError] = useState<string | null>(null);
+
   const [mode, setMode] = useState<'normal' | 'prognosis' | 'merged'>('normal');
   const [face, setFace] = useState<string>('all');
-  const [qdSrc, setQdSrc] = useState<string | null>(null);
-  const [qdLoading, setQdLoading] = useState(false);
-  const [qdError, setQdError] = useState<string | null>(null);
   const [qdCompare, setQdCompare] = useState<boolean>(false);
+
+  const [showLegendModal, setShowLegendModal] = useState(false);
+  const [showFacesModal, setShowFacesModal] = useState(false);
+  const [showQdModal, setShowQdModal] = useState(false);
 
   const fetchChernoffFaces = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
       const response = await api.get('/chernoff-faces', {
         params: { language, mode, face: face !== 'all' ? face : undefined },
         responseType: 'blob',
       });
-
-      const imageUrl = URL.createObjectURL(response.data);
-      setImageSrc(imageUrl);
-    } catch (requestError) {
+      const url = URL.createObjectURL(response.data);
+      setImageSrc(url);
+    } catch (e) {
       setImageSrc(null);
-      setError(extractErrorMessage(requestError, t));
+      setError(extractErrorMessage(e, t));
     } finally {
       setLoading(false);
     }
   }, [language, mode, face, t]);
 
-  useEffect(() => {
-    void fetchChernoffFaces();
-
-    return () => {
-      if (imageSrc && imageSrc.startsWith('blob:')) {
-        URL.revokeObjectURL(imageSrc);
-      }
-    };
-  }, [fetchChernoffFaces]);
+  const fetchChernoffLegend = useCallback(async () => {
+    setLegendLoading(true);
+    setLegendError(null);
+    try {
+      const res = await api.get('/chernoff-faces/legend', {
+        params: { language },
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data);
+      setLegendSrc(url);
+    } catch (e) {
+      setLegendSrc(null);
+      setLegendError(extractErrorMessage(e, t));
+    } finally {
+      setLegendLoading(false);
+    }
+  }, [language, t]);
 
   const fetchQuantilesDistance = useCallback(async () => {
     setQdLoading(true);
     setQdError(null);
     try {
       const params: Record<string, string | boolean> = { language, mode, compare: qdCompare };
-      if (face !== 'all') {
-        params.column = face;
-      }
-      const res = await api.get('/quantiles-distance', {
-        params,
-        responseType: 'blob',
-      });
+      if (face !== 'all') params.column = face;
+      const res = await api.get('/quantiles-distance', { params, responseType: 'blob' });
       const url = URL.createObjectURL(res.data);
-      if (qdSrc && qdSrc.startsWith('blob:')) URL.revokeObjectURL(qdSrc);
       setQdSrc(url);
     } catch (e) {
       setQdSrc(null);
@@ -91,6 +87,20 @@ const ChernoffFacesTab = () => {
       setQdLoading(false);
     }
   }, [language, mode, face, qdCompare, t]);
+
+  useEffect(() => {
+    void fetchChernoffFaces();
+    return () => {
+      if (imageSrc && imageSrc.startsWith('blob:')) URL.revokeObjectURL(imageSrc);
+    };
+  }, [fetchChernoffFaces]);
+
+  useEffect(() => {
+    void fetchChernoffLegend();
+    return () => {
+      if (legendSrc && legendSrc.startsWith('blob:')) URL.revokeObjectURL(legendSrc);
+    };
+  }, [language, fetchChernoffLegend]);
 
   useEffect(() => {
     void fetchQuantilesDistance();
@@ -103,9 +113,9 @@ const ChernoffFacesTab = () => {
     <section>
       <Card>
         <Card.Header>
-          <div className="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-            <span>{t('chernoff_title', 'Twarze Chernoffa')}</span>
-            <div className="d-flex align-items-center gap-2">
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <span className="text-nowrap">{t('chernoff_title', 'Twarze Chernoffa')}</span>
+            <div className="d-flex flex-wrap align-items-center gap-2" style={{ minWidth: 0 }}>
               <ButtonGroup>
                 <ToggleButton
                   id="chernoff-mode-normal"
@@ -144,21 +154,28 @@ const ChernoffFacesTab = () => {
                   {t('ui_mode_merged', 'Połączone')}
                 </ToggleButton>
               </ButtonGroup>
-              <Form.Select
-                size="sm"
-                style={{ width: 220 }}
-                value={face}
-                onChange={(e) => setFace(e.target.value)}
-              >
-                <option value="all">{t('chernoff_face_all', 'Wszystkie')}</option>
-                <option value="credit_score">{t('data_col_credit_score', 'Credit Rating')}</option>
-                <option value="income">{t('data_col_income', 'Income')}</option>
-                <option value="loan_amount">{t('data_col_loan_amount', 'Loan amount')}</option>
-                <option value="points">{t('data_col_points', 'Points')}</option>
-                <option value="years_employed">
-                  {t('data_col_years_employed', 'Years employed')}
-                </option>
-              </Form.Select>
+
+              <Form.Group className="mb-0" style={{ minWidth: '200px' }}>
+                <Form.Select
+                  size="sm"
+                  title={t('chernoff_select_attribute', 'Select attribute')}
+                  value={face}
+                  onChange={(e) => setFace(e.target.value)}
+                  aria-label={t('chernoff_select_attribute', 'Select attribute')}
+                >
+                  <option value="all">{t('chernoff_face_all', 'Wszystkie')}</option>
+                  <option value="credit_score">
+                    {t('data_col_credit_score', 'Credit Rating')}
+                  </option>
+                  <option value="income">{t('data_col_income', 'Income')}</option>
+                  <option value="loan_amount">{t('data_col_loan_amount', 'Loan amount')}</option>
+                  <option value="points">{t('data_col_points', 'Points')}</option>
+                  <option value="years_employed">
+                    {t('data_col_years_employed', 'Years employed')}
+                  </option>
+                </Form.Select>
+              </Form.Group>
+
               <Button
                 variant="outline-secondary"
                 size="sm"
@@ -167,31 +184,84 @@ const ChernoffFacesTab = () => {
               >
                 {t('chernoff_refresh', 'Odśwież')}
               </Button>
+
               <Form.Check
                 type="switch"
                 id="qd-compare"
                 label={t('chart_compare_overlay', 'Porównaj (nakładka Normalne vs Prognoza)')}
                 checked={qdCompare}
                 onChange={(e) => setQdCompare(e.currentTarget.checked)}
+                style={{ minWidth: '280px' }}
               />
             </div>
           </div>
         </Card.Header>
+
         <Card.Body
-          className="d-flex align-items-center justify-content-center"
-          style={{ minHeight: '65vh' }}
+          className="d-flex flex-column align-items-center justify-content-start gap-4 overflow-auto"
+          style={{ minHeight: 'auto', maxWidth: '100%' }}
         >
-          {loading ? (
-            <Spinner animation="border" role="status" />
-          ) : error ? (
-            <Alert variant="danger" className="w-100 text-center">
-              {error}
-            </Alert>
-          ) : imageSrc ? (
-            <Image src={imageSrc} alt={t('chernoff_title', 'Twarze Chernoffa')} fluid />
-          ) : (
-            <span>{t('chernoff_no_data', 'Brak danych do wygenerowania wizualizacji.')}</span>
-          )}
+          <div
+            className="w-100 d-flex align-items-center justify-content-center overflow-hidden"
+            style={{ minHeight: '300px', cursor: 'pointer' }}
+            onClick={() => setShowLegendModal(true)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && setShowLegendModal(true)}
+          >
+            {legendLoading ? (
+              <Spinner animation="border" />
+            ) : legendError ? (
+              <Alert variant="danger" className="w-100">
+                {legendError}
+              </Alert>
+            ) : legendSrc ? (
+              <Image
+                src={legendSrc}
+                alt={t('chernoff_legend_title', 'Legenda Twarzy Chernoffa')}
+                fluid
+                style={{
+                  maxHeight: '45vh',
+                  width: 'auto',
+                  objectFit: 'contain',
+                  cursor: 'pointer',
+                }}
+              />
+            ) : null}
+          </div>
+
+          <hr className="w-100 my-2" />
+
+          <div
+            className="w-100 d-flex align-items-center justify-content-center overflow-hidden"
+            style={{ minHeight: '400px', cursor: 'pointer' }}
+            onClick={() => setShowFacesModal(true)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && setShowFacesModal(true)}
+          >
+            {loading ? (
+              <Spinner animation="border" role="status" />
+            ) : error ? (
+              <Alert variant="danger" className="w-100 text-center">
+                {error}
+              </Alert>
+            ) : imageSrc ? (
+              <Image
+                src={imageSrc}
+                alt={t('chernoff_title', 'Twarze Chernoffa')}
+                fluid
+                style={{
+                  maxHeight: '50vh',
+                  width: 'auto',
+                  objectFit: 'contain',
+                  cursor: 'pointer',
+                }}
+              />
+            ) : (
+              <span>{t('chernoff_no_data', 'Brak danych do wygenerowania wizualizacji.')}</span>
+            )}
+          </div>
         </Card.Body>
       </Card>
 
@@ -201,7 +271,11 @@ const ChernoffFacesTab = () => {
         </Card.Header>
         <Card.Body
           className="d-flex align-items-center justify-content-center"
-          style={{ minHeight: 240 }}
+          style={{ minHeight: 240, cursor: 'pointer' }}
+          onClick={() => setShowQdModal(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && setShowQdModal(true)}
         >
           {qdLoading ? (
             <Spinner animation="border" role="status" />
@@ -214,13 +288,65 @@ const ChernoffFacesTab = () => {
               src={qdSrc}
               alt={t('chart_quantiles_distance_label', 'Odległość kwartylów od średniej')}
               fluid
-              style={{ maxHeight: '50vh', objectFit: 'contain' }}
+              style={{ maxHeight: '50vh', width: '100%', objectFit: 'contain', cursor: 'pointer' }}
             />
           ) : (
             <span>{t('chart_select_to_display', 'Wybierz wykres, aby go wyświetlić.')}</span>
           )}
         </Card.Body>
       </Card>
+
+      <Modal show={showLegendModal} onHide={() => setShowLegendModal(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>{t('chernoff_legend_title', 'Legenda Twarzy Chernoffa')}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body
+          className="d-flex align-items-center justify-content-center"
+          style={{ minHeight: '500px' }}
+        >
+          {legendSrc ? (
+            <Image
+              src={legendSrc}
+              alt={t('chernoff_legend_title', 'Legenda Twarzy Chernoffa')}
+              fluid
+            />
+          ) : null}
+        </Modal.Body>
+      </Modal>
+
+      <Modal show={showFacesModal} onHide={() => setShowFacesModal(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>{t('chernoff_title', 'Twarze Chernoffa')}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body
+          className="d-flex align-items-center justify-content-center"
+          style={{ minHeight: '600px' }}
+        >
+          {imageSrc ? (
+            <Image src={imageSrc} alt={t('chernoff_title', 'Twarze Chernoffa')} fluid />
+          ) : null}
+        </Modal.Body>
+      </Modal>
+
+      <Modal show={showQdModal} onHide={() => setShowQdModal(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {t('chart_quantiles_distance_label', 'Odległość kwartylów od średniej')}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body
+          className="d-flex align-items-center justify-content-center"
+          style={{ minHeight: '500px' }}
+        >
+          {qdSrc ? (
+            <Image
+              src={qdSrc}
+              alt={t('chart_quantiles_distance_label', 'Odległość kwartylów od średniej')}
+              fluid
+            />
+          ) : null}
+        </Modal.Body>
+      </Modal>
     </section>
   );
 };

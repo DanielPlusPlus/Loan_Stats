@@ -45,7 +45,7 @@ def get_columns_mean():
     if err:
       return err, code
     mode = request.args.get("mode", "normal")
-    return RequestResponseController.make_stats_response_with_mode(StatsCalculatorController.calculate_mean_m, column_name, mode)
+    return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_mean, column_name, mode)
 
 
 @StatsBlueprint.route("/sum")
@@ -85,7 +85,7 @@ def get_columns_sum():
     if err:
       return err, code
     mode = request.args.get("mode", "normal")
-    return RequestResponseController.make_stats_response_with_mode(StatsCalculatorController.calculate_sum_m, column_name, mode)
+    return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_sum, column_name, mode)
 
 
 @StatsBlueprint.route("/quartiles")
@@ -125,7 +125,7 @@ def get_columns_quartiles():
     if err:
       return err, code
     mode = request.args.get("mode", "normal")
-    return RequestResponseController.make_stats_response_with_mode(StatsCalculatorController.calculate_quartiles_m, column_name, mode)
+    return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_quartiles, column_name, mode)
 
 
 @StatsBlueprint.route("/median")
@@ -165,7 +165,7 @@ def get_columns_median():
     if err:
       return err, code
     mode = request.args.get("mode", "normal")
-    return RequestResponseController.make_stats_response_with_mode(StatsCalculatorController.calculate_median_m, column_name, mode)
+    return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_median, column_name, mode)
 
 
 @StatsBlueprint.route("/mode")
@@ -207,7 +207,7 @@ def get_columns_mode():
     if err:
       return err, code
     mode = request.args.get("mode", "normal")
-    return RequestResponseController.make_stats_response_with_mode(StatsCalculatorController.calculate_mode_m, column_name, mode)
+    return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_mode, column_name, mode)
 
 
 @StatsBlueprint.route("/skewness")
@@ -247,7 +247,7 @@ def get_columns_skewness():
     if err:
       return err, code
     mode = request.args.get("mode", "normal")
-    return RequestResponseController.make_stats_response_with_mode(StatsCalculatorController.calculate_skewness_m, column_name, mode)
+    return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_skewness, column_name, mode)
 
 
 @StatsBlueprint.route("/kurtosis")
@@ -287,7 +287,7 @@ def get_columns_kurtosis():
     if err:
       return err, code
     mode = request.args.get("mode", "normal")
-    return RequestResponseController.make_stats_response_with_mode(StatsCalculatorController.calculate_kurtosis_m, column_name, mode)
+    return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_kurtosis, column_name, mode)
 
 
 @StatsBlueprint.route("/deviation")
@@ -327,7 +327,7 @@ def get_columns_deviation():
     if err:
       return err, code
     mode = request.args.get("mode", "normal")
-    return RequestResponseController.make_stats_response_with_mode(StatsCalculatorController.calculate_deviation_m, column_name, mode)
+    return RequestResponseController.make_stats_response(StatsCalculatorController.calculate_deviation, column_name, mode)
 
 
 @StatsBlueprint.route("/summary")
@@ -340,7 +340,7 @@ def get_summary():
         in: query
         type: string
         required: false
-        default: normal
+        default: 'normal'
         enum: ['normal', 'prognosis']
         description: Dataset mode to use.
     responses:

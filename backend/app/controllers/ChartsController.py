@@ -1,25 +1,20 @@
 import io
-import base64
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib import font_manager
+from matplotlib.lines import Line2D
 import seaborn as sns
 import pandas as pd
 import numpy as np
-import requests
-from pathlib import Path
 from flask import Response, request
 from app.controllers.FilesController import FilesControllerInstance
 from app.controllers.LanguagesController import LanguagesControllerInstance
+from app.controllers.FontController import FontControllerInstance
 from scipy.stats import norm, t as student_t
 
 matplotlib.use("Agg")
 
 
 class ChartsController:
-    __font_cache_dir = Path("/tmp/matplotlib_fonts")
-    __downloaded_fonts = {}
-
     def __init__(self):
         self.__data = None
 
@@ -40,119 +35,35 @@ class ChartsController:
             return data
         if self.__data is None:
             self.__data = FilesControllerInstance.get_data()
+            if self.__data is None:
+                raise ValueError("No data loaded")
         return self.__data
-
-    def __download_font(self, font_url: str, font_name: str) -> str:
-        if font_name in self.__downloaded_fonts:
-            print(f"Font {font_name} already cached")
-            return self.__downloaded_fonts[font_name]
-
-        self.__font_cache_dir.mkdir(parents=True, exist_ok=True)
-        url_no_query = font_url.split("?")[0]
-        ext = Path(url_no_query).suffix or ".ttf"
-        font_path = self.__font_cache_dir / f"{font_name}{ext}"
-
-        if not font_path.exists():
-            try:
-                print(f"Downloading font {font_name} from {font_url}")
-                response = requests.get(
-                    font_url,
-                    timeout=15,
-                    headers={
-                        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-                        "Accept": "*/*",
-                    },
-                )
-                response.raise_for_status()
-                font_path.write_bytes(response.content)
-                print(f"Font {font_name} downloaded successfully to {font_path}")
-            except Exception as e:
-                print(f"Failed to download font {font_name}: {e}")
-                return None
-
-        if font_path.exists():
-            try:
-                font_manager.fontManager.addfont(str(font_path))
-                self.__downloaded_fonts[font_name] = str(font_path)
-                print(f"Font {font_name} registered with matplotlib at {font_path}")
-                return str(font_path)
-            except Exception as e:
-                print(f"Failed to register font {font_name}: {e}")
-                return None
-
-        return None
-
-    def __set_font_for_language(self, language: str):
-        sources = {
-            "zh": [
-                ("https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansSC-Regular.otf", "NotoSansSC"),
-                ("https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf", "NotoSansCJKsc"),
-                ("https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansSC-Regular.otf", "NotoSansSC"),
-                ("https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf", "NotoSansCJKsc"),
-                ("https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansSC-Regular.otf", "NotoSansSC"),
-                ("https://fonts.gstatic.com/s/notosanssc/v36/k3kXo84MPvpLmixcA63oeALhL4iJ-Q7m8w.ttf", "NotoSansSC"),
-            ],
-            "ko": [
-                ("https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/Korean/NotoSansKR-Regular.otf", "NotoSansKR"),
-                ("https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/Korean/NotoSansCJKkr-Regular.otf", "NotoSansCJKkr"),
-                ("https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/Korean/NotoSansKR-Regular.otf", "NotoSansKR"),
-                ("https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/Korean/NotoSansCJKkr-Regular.otf", "NotoSansCJKkr"),
-                ("https://fonts.gstatic.com/s/notosanskr/v36/PbyxFmXiEBPT4ITbgNA5Cgms3VYcOA-vvnIzzuoyeLTq8H4hfeE.ttf", "NotoSansKR"),
-            ],
-        }
-
-        default_font = 'DejaVu Sans'
-
-        chosen_path = None
-        chosen_key = None
-
-        if language in sources:
-            for url, key in sources[language]:
-                path = self.__download_font(url, key)
-                if path:
-                    chosen_path = path
-                    chosen_key = key
-                    break
-
-        if chosen_path:
-            try:
-                family_name = font_manager.FontProperties(fname=str(chosen_path)).get_name()
-                print(f"Detected family '{family_name}' for key '{chosen_key}' (language={language})")
-                plt.rcParams['font.family'] = 'sans-serif'
-                plt.rcParams['font.sans-serif'] = [family_name, 'DejaVu Sans', 'Arial']
-            except Exception as e:
-                print(f"Failed to resolve family name for {chosen_path}: {e}")
-                plt.rcParams['font.family'] = default_font
-        else:
-            print(f"Font download failed, using {default_font}")
-            plt.rcParams['font.family'] = default_font
-
-        plt.rcParams['axes.unicode_minus'] = False
 
     def __apply_theme(self, language: str, style: str = "whitegrid"):
         try:
-            sns.set_theme(style=style)
+            valid_styles: tuple[str, ...] = ('white', 'dark', 'whitegrid', 'darkgrid', 'ticks')
+            sns.set_theme(style=style if style in valid_styles else 'whitegrid')
         except Exception:
             sns.set_theme()
-        self.__set_font_for_language(language)
+        FontControllerInstance.set_font_for_language(language)
 
-    def __fig_to_bytes(self, plt_obj) -> bytes:
+    def __fig_to_bytes(self, plt_obj: object) -> bytes:
         buf = io.BytesIO()
-        plt_obj.savefig(buf, format="png", bbox_inches="tight")
+        getattr(plt_obj, 'savefig')(buf, format="png", bbox_inches="tight")
         buf.seek(0)
         img_bytes = buf.getvalue()
         buf.close()
         return img_bytes
 
-    def __get_decision_labels(self, language: str):
-        approved = LanguagesControllerInstance.get_translation(language, "chart_label_approved", "Approved")
-        rejected = LanguagesControllerInstance.get_translation(language, "chart_label_rejected", "Rejected")
+    def __get_decision_labels(self, language: str) -> dict[bool, str]:
+        approved: str = LanguagesControllerInstance.get_translation(language, "chart_label_approved", "Approved") or "Approved"
+        rejected: str = LanguagesControllerInstance.get_translation(language, "chart_label_rejected", "Rejected") or "Rejected"
         return {True: approved, False: rejected}
 
-    def __get_income_group_labels(self, language: str):
-        low = LanguagesControllerInstance.get_translation(language, "chart_legend_income_low", "Low")
-        medium = LanguagesControllerInstance.get_translation(language, "chart_legend_income_medium", "Medium")
-        high = LanguagesControllerInstance.get_translation(language, "chart_legend_income_high", "High")
+    def __get_income_group_labels(self, language: str) -> dict[str, str]:
+        low: str = LanguagesControllerInstance.get_translation(language, "chart_legend_income_low", "Low") or "Low"
+        medium: str = LanguagesControllerInstance.get_translation(language, "chart_legend_income_medium", "Medium") or "Medium"
+        high: str = LanguagesControllerInstance.get_translation(language, "chart_legend_income_high", "High") or "High"
         return {"low": low, "medium": medium, "high": high}
 
     def plot_income_histogram(self, language: str):
@@ -172,27 +83,27 @@ class ChartsController:
         approved_label = LanguagesControllerInstance.get_translation(language, "chart_legend_loan_approved", "Loan Approved")
         rejected_label = LanguagesControllerInstance.get_translation(language, "chart_legend_loan_rejected", "Loan Rejected")
 
-        def plot_group(values, label, color):
+        def plot_group(values: pd.Series, label: str, color: str) -> None:
             if values.empty:
                 return
             unique_vals = values.unique()
             if len(values) >= 2 and len(unique_vals) > 1:
-                sns.histplot(values, bins=min(30, max(5, int(len(unique_vals) * 1.5))),
+                sns.histplot(values.to_numpy(), bins=min(30, max(5, int(len(unique_vals) * 1.5))),
                              kde=True, stat='density', alpha=0.35, color=color, label=label)
             else:
                 x_val = unique_vals[0]
-                plt.axvline(x_val, color=color, linestyle='--', linewidth=2, label=f"{label} (single)")
-                plt.scatter([x_val], [0], color=color, marker='o')
+                plt.axvline(float(x_val), color=color, linestyle='--', linewidth=2, label=f"{label} (single)")
+                plt.scatter([float(x_val)], [0], color=color, marker='o')
 
         plot_group(approved_income, approved_label, '#99ff99')
         plot_group(rejected_income, rejected_label, '#ff9999')
 
         handles, labels = plt.gca().get_legend_handles_labels()
         if approved_income.empty and approved_label not in labels:
-            handles.append(matplotlib.lines.Line2D([0], [0], color='#99ff99', linestyle='--'))
+            handles.append(Line2D([0], [0], color='#99ff99', linestyle='--'))
             labels.append(f"{approved_label} (none)")
         if rejected_income.empty and rejected_label not in labels:
-            handles.append(matplotlib.lines.Line2D([0], [0], color='#ff9999', linestyle='--'))
+            handles.append(Line2D([0], [0], color='#ff9999', linestyle='--'))
             labels.append(f"{rejected_label} (none)")
         if handles:
             plt.legend(handles, labels)
@@ -204,7 +115,7 @@ class ChartsController:
         plt.close()
         return Response(img_bytes, mimetype='image/png')
 
-    def get_chart_description(self, chart_id: str, language: str) -> dict:
+    def get_chart_description(self, chart_id: str, language: str) -> dict[str, str]:
         mapping = {
             "income-hist": (
                 "chart_desc_income_hist",
@@ -415,7 +326,7 @@ class ChartsController:
         translated = [col_label_map.get(c, c.replace('_', ' ').title()) for c in corr.columns]
         corr_translated = corr.copy()
         corr_translated.columns = translated
-        corr_translated.index = translated
+        corr_translated.index = pd.Index(translated)
         sns.heatmap(corr_translated, annot=True, cmap="coolwarm", fmt=".2f")
         plt.xticks(rotation=45, ha='right')
         plt.yticks(rotation=0)
@@ -554,8 +465,9 @@ class ChartsController:
 
         pairplot.fig.subplots_adjust(hspace=0.5, wspace=0.5)
         pairplot.fig.suptitle(LanguagesControllerInstance.get_translation(language, "chart_title_pairplot_main", "Relationships Between Key Variables"), y=1.02)
-        if pairplot._legend is not None:
-            pairplot._legend.set_title(LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision"))
+        legend = getattr(pairplot, '_legend', None)
+        if legend is not None:
+            legend.set_title(LanguagesControllerInstance.get_translation(language, "chart_legend_decision", "Decision"))
         buf = io.BytesIO()
         pairplot.savefig(buf, format="png", bbox_inches="tight")
         buf.seek(0)
@@ -585,8 +497,8 @@ class ChartsController:
         data = self.__get_data()
         self.__apply_theme(language, style="whitegrid")
         plt.figure(figsize=(8, 5))
-        sns.kdeplot(data=data[data["loan_approved"] == True]["credit_score"], label=LanguagesControllerInstance.get_translation(language, "chart_legend_loan_approved", "Loan Approved"))
-        sns.kdeplot(data=data[data["loan_approved"] == False]["credit_score"], label=LanguagesControllerInstance.get_translation(language, "chart_legend_loan_rejected", "Loan Rejected"))
+        sns.kdeplot(data=data[data["loan_approved"] == True]["credit_score"].to_numpy(), label=LanguagesControllerInstance.get_translation(language, "chart_legend_loan_approved", "Loan Approved"))
+        sns.kdeplot(data=data[data["loan_approved"] == False]["credit_score"].to_numpy(), label=LanguagesControllerInstance.get_translation(language, "chart_legend_loan_rejected", "Loan Rejected"))
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_credit_score_distribution", "Credit Score Distribution by Loan Approval Decision"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_credit_score", "Credit Score"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_density", "Density"))
@@ -596,17 +508,17 @@ class ChartsController:
         return Response(img_bytes, mimetype='image/png')
 
     def plot_income_hist_and_density(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data()
         plt.figure(figsize=(8, 5))
-        sns.histplot(data["income"], kde=True, bins=20, color="skyblue")
+        sns.histplot(data["income"].to_numpy(), kde=True, bins=20, color="skyblue")
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_income_hist_density", "Income Histogram and Density Distribution"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_income", "Income"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_number_of_clients", "Number of Clients"))
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
     def plot_income_box(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data()
         plt.figure(figsize=(6, 4))
         sns.boxplot(y=data["income"], color="lightgreen")
@@ -615,7 +527,7 @@ class ChartsController:
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
     def plot_income_ecdf(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data()
         plt.figure(figsize=(8, 5))
         sorted_income = np.sort(data["income"])
@@ -627,7 +539,7 @@ class ChartsController:
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
     def plot_income_frequency(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data()
         bins = pd.cut(data["income"], bins=10)
         counts = bins.value_counts().sort_index()
@@ -639,7 +551,7 @@ class ChartsController:
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
     def plot_income_relative_frequency(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data()
         bins = pd.cut(data["income"], bins=10)
         rel_freq = bins.value_counts(normalize=True).sort_index()
@@ -651,7 +563,7 @@ class ChartsController:
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
     def plot_loan_pie(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data()
         counts = data["loan_approved"].value_counts()
         plt.figure(figsize=(6, 6))
@@ -680,8 +592,16 @@ class ChartsController:
                 normalized_means.loc[col, rejected_label] = (normalized_means.loc[col, rejected_label] - min_val) / (max_val - min_val)
                 normalized_means.loc[col, approved_label] = (normalized_means.loc[col, approved_label] - min_val) / (max_val - min_val)
             else:
-                normalized_means.loc[col, rejected_label] = 1 if normalized_means.loc[col, rejected_label] > 0 else 0
-                normalized_means.loc[col, approved_label] = 1 if normalized_means.loc[col, approved_label] > 0 else 0
+                try:
+                    rej_item = normalized_means.loc[col, rejected_label]
+                    app_item = normalized_means.loc[col, approved_label]
+                    rej_val = rej_item if isinstance(rej_item, (int, float, bool)) else float(str(rej_item))
+                    app_val = app_item if isinstance(app_item, (int, float, bool)) else float(str(app_item))
+                    normalized_means.loc[col, rejected_label] = 1 if rej_val > 0 else 0
+                    normalized_means.loc[col, approved_label] = 1 if app_val > 0 else 0
+                except (TypeError, ValueError):
+                    normalized_means.loc[col, rejected_label] = 0
+                    normalized_means.loc[col, approved_label] = 0
 
         plt.figure(figsize=(8, 5))
 
@@ -716,7 +636,7 @@ class ChartsController:
         return Response(img_bytes, mimetype='image/png')
 
     def plot_income_radar(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data()
 
         cols = ["income", "loan_amount", "credit_score", "years_employed"]
@@ -742,7 +662,7 @@ class ChartsController:
         categories = [var_label_map.get(v, v.replace('_',' ').title()) for v in normalized_data[cols].columns]
         values = means.values
 
-        values = np.concatenate((values, [values[0]]))
+        values = np.concatenate((np.asarray(values), [values[0]]))
         angles = np.linspace(0, 2 * np.pi, len(categories) + 1)
 
         plt.figure(figsize=(6, 6))
@@ -766,12 +686,12 @@ class ChartsController:
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
     def plot_age_pyramid(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data()
         bins = range(0, int(data["years_employed"].max()) + 5, 5)
 
-        approved_counts = data[data["loan_approved"] == True]["years_employed"].value_counts(bins=bins).sort_index()
-        rejected_counts = data[data["loan_approved"] == False]["years_employed"].value_counts(bins=bins).sort_index()
+        approved_counts = pd.cut(data[data["loan_approved"] == True]["years_employed"], bins=bins).value_counts().sort_index()
+        rejected_counts = pd.cut(data[data["loan_approved"] == False]["years_employed"], bins=bins).value_counts().sort_index()
 
         bin_labels = [f"{int(interval.left)}-{int(interval.right)}" for interval in approved_counts.index]
 
@@ -780,8 +700,8 @@ class ChartsController:
 
         approved_label = LanguagesControllerInstance.get_translation(language, "chart_label_approved", "Approved")
         rejected_label = LanguagesControllerInstance.get_translation(language, "chart_label_rejected", "Rejected")
-        plt.bar(x_positions, approved_counts.values, color="#99ff99", label=approved_label)
-        plt.bar(x_positions, rejected_counts.values, color="#ff9999", label=rejected_label, bottom=approved_counts.values)
+        plt.bar(x_positions, approved_counts.to_numpy(), color="#99ff99", label=approved_label)
+        plt.bar(x_positions, rejected_counts.to_numpy(), color="#ff9999", label=rejected_label, bottom=approved_counts.to_numpy())
 
         plt.xticks(x_positions, bin_labels)
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_age_pyramid", "Years of Employment ~ Age"))
@@ -798,17 +718,17 @@ class ChartsController:
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
     def plot_income_line(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data().sort_values("income")
         plt.figure(figsize=(8, 5))
-        plt.plot(data["income"].values, marker="o")
+        plt.plot(data["income"].to_numpy(), marker="o")
         plt.title(LanguagesControllerInstance.get_translation(language, "chart_title_income_line", "Line Plot of Income Values"))
         plt.xlabel(LanguagesControllerInstance.get_translation(language, "chart_label_client_sorted", "Client (sorted)"))
         plt.ylabel(LanguagesControllerInstance.get_translation(language, "chart_label_income", "Income"))
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
-    '''
-    def plot_combined_distribution(self, column: str) -> str:
+    def plot_combined_distribution(self, language: str, column: str) -> Response:
+        self.__apply_theme(language)
         data = self.__get_data()
         if column not in data.columns or not pd.api.types.is_numeric_dtype(data[column]):
             print(f"Warning: Column '{column}' is either not numeric or does not exist. Using 'income' instead.")
@@ -822,10 +742,10 @@ class ChartsController:
 
         ax_main = axes[0]
 
-        sns.kdeplot(data=data[column], ax=ax_main, label="Density (KDE)", color="blue", linewidth=2)
+        sns.kdeplot(data=data[column].to_numpy(), ax=ax_main, label="Density (KDE)", color="blue", linewidth=2)
 
         ax_ecdf = ax_main.twinx()
-        sns.ecdfplot(data=data[column], ax=ax_ecdf, label="ECDF", color="red", linewidth=2)
+        sns.ecdfplot(data=data[column].to_numpy(), ax=ax_ecdf, label="ECDF", color="red", linewidth=2)
 
         ax_main.set_title(f"Density Distribution, ECDF, and Boxplot for: {column.capitalize()}")
         ax_main.set_xlabel(column.capitalize())
@@ -841,10 +761,9 @@ class ChartsController:
         ax_box.set_xlabel(column.capitalize())
         ax_box.set_yticks([])
 
-        img = self.__fig_to_base64(plt)
+        img_bytes = self.__fig_to_bytes(plt)
         plt.close(fig)
-        return img
-    '''
+        return Response(img_bytes, mimetype='image/png')
 
     def plot_kurtosis_comparison(self, language: str):
         data = self.__get_data()
@@ -859,12 +778,16 @@ class ChartsController:
 
         for col in selected_cols:
             if col in num_cols:
-                series = data[col].dropna()
+                series_vals = np.asarray(data[col].dropna().values, dtype=float)
                 if col in ["income", "loan_amount"]:
-                    series = np.log1p(series)
-                series = (series - series.mean()) / series.std()
-                transformed_series[col] = series
-                kurtosis_values[col] = series.kurtosis()
+                    series_vals = np.log1p(series_vals)
+                series_vals = (series_vals - np.mean(series_vals)) / np.std(series_vals)
+                transformed_series[col] = series_vals
+                try:
+                    kurt_val = pd.Series(series_vals).kurtosis()
+                    kurtosis_values[col] = float(kurt_val) if isinstance(kurt_val, (int, float)) else 0.0
+                except Exception:
+                    kurtosis_values[col] = 0.0
 
         if not transformed_series:
             raise ValueError("No suitable numeric columns for kurtosis comparison.")
@@ -890,7 +813,7 @@ class ChartsController:
         return Response(img_bytes, mimetype='image/png')
 
     def plot_normal_distribution(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data()
 
         income = data['income'].dropna()
@@ -912,7 +835,7 @@ class ChartsController:
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
     def plot_student_t_distribution(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
         data = self.__get_data()
 
         income = data['income'].dropna()
@@ -938,7 +861,7 @@ class ChartsController:
         return Response(self.__fig_to_bytes(plt), mimetype='image/png')
 
     def plot_quantiles_distance(self, language: str):
-        self.__set_font_for_language(language)
+        self.__apply_theme(language)
 
         col = request.args.get('column', None) if request else None
         compare_flag = str(request.args.get('compare', '0')).lower() in ('1', 'true', 'yes') if request else False

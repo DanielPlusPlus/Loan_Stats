@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
 import Alert from 'react-bootstrap/Alert';
 import Card from 'react-bootstrap/Card';
@@ -7,6 +6,7 @@ import Image from 'react-bootstrap/Image';
 import Spinner from 'react-bootstrap/Spinner';
 import useLanguage from '../hooks/useLanguage';
 import api from '../services/api';
+import Description from './Description';
 
 interface ChartDefinition {
   id: string;
@@ -155,24 +155,7 @@ const NUMERIC_COLUMNS: Array<{ key: string; labelKey: string; fallback: string }
   { key: 'points', labelKey: 'data_col_points', fallback: 'Points' },
 ];
 
-const extractErrorMessage = (
-  error: unknown,
-  t: (key: string, fallback?: string) => string
-): string => {
-  if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { error?: string } | undefined;
-    if (typeof data?.error === 'string') {
-      return data.error;
-    }
-    return error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return t('chart_failed_to_fetch', 'Nie udało się pobrać wykresu.');
-};
+import { extractErrorMessage } from '../utils/errors';
 
 type Mode = 'normal' | 'prognosis' | 'merged';
 
@@ -332,33 +315,17 @@ const ChartsTab = ({ mode = 'normal' }: { mode?: Mode }) => {
                       />
                     </Form.Group>
                     <div style={{ minHeight: 22 }}>
-                      {descLoading ? (
-                        <small className="text-muted">
-                          {t('chart_desc_loading', 'Loading description...')}
-                        </small>
-                      ) : descError ? (
-                        <small className="text-danger">{descError}</small>
-                      ) : description ? (
-                        <small className="text-muted d-block" style={{ whiteSpace: 'pre-line' }}>
-                          {description}
-                        </small>
-                      ) : null}
+                      <Description
+                        description={description}
+                        loading={descLoading}
+                        error={descError}
+                      />
                     </div>
                   </div>
                 </>
               ) : (
                 <div className="mt-2" style={{ minHeight: 22 }}>
-                  {descLoading ? (
-                    <small className="text-muted">
-                      {t('chart_desc_loading', 'Loading description...')}
-                    </small>
-                  ) : descError ? (
-                    <small className="text-danger">{descError}</small>
-                  ) : description ? (
-                    <small className="text-muted d-block" style={{ whiteSpace: 'pre-line' }}>
-                      {description}
-                    </small>
-                  ) : null}
+                  <Description description={description} loading={descLoading} error={descError} />
                 </div>
               )}
             </Form.Group>

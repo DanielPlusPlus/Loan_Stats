@@ -5,6 +5,13 @@
   "chart_title_quantiles_distance": "Distance of Quartiles from Mean",
   "chernoff": {
     "title": "Chernoff Face Legend",
+    "legend": {
+      "title": "Chernoff Faces Legend",
+      "q1": "Quartile Q1 closest to mean",
+      "q2": "Quartile Q2 closest to mean",
+      "q3": "Quartile Q3 closest to mean",
+      "attributes_label": "Attributes"
+    },
     "stats": {
       "avg": "Average",
       "closest": "Quartile closest to Average"

@@ -18,8 +18,8 @@ const StatisticsMenu = () => {
   return (
     <section className="container-fluid px-0">
       <Card>
-        <Card.Header className="d-flex align-items-center justify-content-between">
-          <span>{t('ui_tab_statistics', 'Statystyka')}</span>
+        <Card.Header className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+          <span className="text-nowrap">{t('ui_tab_statistics', 'Statystyka')}</span>
           <ButtonGroup>
             <ToggleButton
               id="mode-normal"

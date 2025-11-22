@@ -29,7 +29,7 @@ def quantiles_distance():
         in: query
         type: string
         required: false
-        default: normal
+        default: 'normal'
         enum: ['normal', 'prognosis']
         description: Dataset mode to use.
       - name: compare

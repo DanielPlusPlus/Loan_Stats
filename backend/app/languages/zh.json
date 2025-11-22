@@ -6,6 +6,13 @@
   "chart_title_quantiles_distance": "四分位数与均值的距离",
   "chernoff": {
     "title": "切尔诺夫脸图例",
+    "legend": {
+      "title": "切尔诺夫脸谱图例",
+      "q1": "最接近均值的四分位数 Q1",
+      "q2": "最接近均值的四分位数 Q2",
+      "q3": "最接近均值的四分位数 Q3",
+      "attributes_label": "属性"
+    },
     "stats": {
       "avg": "平均",
       "closest": "最接近平均值的四分位数"

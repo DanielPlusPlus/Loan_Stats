@@ -15,22 +15,17 @@ const NUMERIC_COLUMNS: Array<{ key: string; labelKey: string; fallback: string }
   { key: 'years_employed', labelKey: 'data_col_years_employed', fallback: 'Years employed' },
 ];
 
-const STAT_ROWS: Array<{ key: string; labelKey: string; fallback: string; endpoint: string }> = [
-  { key: 'mean', labelKey: 'stats_mean', fallback: 'Mean', endpoint: '/mean' },
-  { key: 'median', labelKey: 'stats_median', fallback: 'Median', endpoint: '/median' },
-  { key: 'mode', labelKey: 'stats_mode', fallback: 'Mode', endpoint: '/mode' },
-  { key: 'sum', labelKey: 'stats_sum', fallback: 'Sum', endpoint: '/sum' },
-  {
-    key: 'deviation',
-    labelKey: 'stats_std_dev',
-    fallback: 'Std. deviation',
-    endpoint: '/deviation',
-  },
-  { key: 'skewness', labelKey: 'stats_skewness', fallback: 'Skewness', endpoint: '/skewness' },
-  { key: 'kurtosis', labelKey: 'stats_kurtosis', fallback: 'Kurtosis', endpoint: '/kurtosis' },
-  { key: 'q1', labelKey: 'stats_q1', fallback: 'Quartile Q1', endpoint: '/quartiles' },
-  { key: 'q2', labelKey: 'stats_q2', fallback: 'Quartile Q2', endpoint: '/quartiles' },
-  { key: 'q3', labelKey: 'stats_q3', fallback: 'Quartile Q3', endpoint: '/quartiles' },
+const METRICS: Array<{ key: string; labelKey: string; fallback: string }> = [
+  { key: 'mean', labelKey: 'stats_mean', fallback: 'Mean' },
+  { key: 'median', labelKey: 'stats_median', fallback: 'Median' },
+  { key: 'mode', labelKey: 'stats_mode', fallback: 'Mode' },
+  { key: 'sum', labelKey: 'stats_sum', fallback: 'Sum' },
+  { key: 'deviation', labelKey: 'stats_std_dev', fallback: 'Std. deviation' },
+  { key: 'skewness', labelKey: 'stats_skewness', fallback: 'Skewness' },
+  { key: 'kurtosis', labelKey: 'stats_kurtosis', fallback: 'Kurtosis' },
+  { key: 'Q1', labelKey: 'stats_q1', fallback: 'Quartile Q1' },
+  { key: 'Q2', labelKey: 'stats_q2', fallback: 'Quartile Q2' },
+  { key: 'Q3', labelKey: 'stats_q3', fallback: 'Quartile Q3' },
 ];
 
 const DEFAULT_LOCALE_MAP: Record<string, string> = {
@@ -48,11 +43,24 @@ const formatNumber = (v: unknown, locale: string) => {
   return String(v);
 };
 
+interface SummaryResponse {
+  mean: Record<string, number>;
+  median: Record<string, number>;
+  mode: Record<string, number | string | null>;
+  sum: Record<string, number>;
+  deviation: Record<string, number>;
+  skewness: Record<string, number>;
+  kurtosis: Record<string, number>;
+  Q1: Record<string, number>;
+  Q2: Record<string, number>;
+  Q3: Record<string, number>;
+}
+
 const StatsSummaryTable = ({ mode }: { mode: 'normal' | 'prognosis' | 'merged' }) => {
   const { language, t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [values, setValues] = useState<Record<string, Record<string, unknown>>>({});
+  const [summary, setSummary] = useState<SummaryResponse | null>(null);
 
   const locale = useMemo(() => DEFAULT_LOCALE_MAP[language] ?? 'pl-PL', [language]);
 
@@ -61,29 +69,11 @@ const StatsSummaryTable = ({ mode }: { mode: 'normal' | 'prognosis' | 'merged' }
       setLoading(true);
       setError(null);
       try {
-        const table: Record<string, Record<string, unknown>> = {};
-        for (const stat of STAT_ROWS) {
-          table[stat.key] = {};
-          for (const col of NUMERIC_COLUMNS) {
-            if (stat.endpoint === '/quartiles') {
-              const res = await api.get<ApiResponse<{ Q1: number; Q2: number; Q3: number }>>(
-                stat.endpoint,
-                { params: { column_name: col.key, language, mode } }
-              );
-              if (!res.data.success) throw new Error(res.data.error ?? 'Bad response');
-              const q = res.data.result;
-              const pick = stat.key === 'q1' ? q.Q1 : stat.key === 'q2' ? q.Q2 : q.Q3;
-              table[stat.key][col.key] = pick;
-            } else {
-              const res = await api.get<ApiResponse<number | string | null>>(stat.endpoint, {
-                params: { column_name: col.key, language, mode },
-              });
-              if (!res.data.success) throw new Error(res.data.error ?? 'Bad response');
-              table[stat.key][col.key] = res.data.result;
-            }
-          }
-        }
-        setValues(table);
+        const res = await api.get<ApiResponse<SummaryResponse>>('/summary', {
+          params: { mode },
+        });
+        if (!res.data.success) throw new Error(res.data.error ?? 'Bad response');
+        setSummary(res.data.result);
       } catch (e) {
         const msg =
           e instanceof Error ? e.message : t('error_unexpected', 'Wystąpił nieoczekiwany błąd.');
@@ -108,7 +98,7 @@ const StatsSummaryTable = ({ mode }: { mode: 'normal' | 'prognosis' | 'merged' }
           <Alert variant="danger" className="mb-0">
             {error}
           </Alert>
-        ) : (
+        ) : summary ? (
           <Table striped bordered responsive size="sm" className="mb-0">
             <thead>
               <tr>
@@ -119,17 +109,17 @@ const StatsSummaryTable = ({ mode }: { mode: 'normal' | 'prognosis' | 'merged' }
               </tr>
             </thead>
             <tbody>
-              {STAT_ROWS.map((row) => (
+              {METRICS.map((row) => (
                 <tr key={row.key}>
                   <th scope="row">{t(row.labelKey, row.fallback)}</th>
                   {NUMERIC_COLUMNS.map((c) => (
-                    <td key={c.key}>{formatNumber(values[row.key]?.[c.key], locale)}</td>
+                    <td key={c.key}>{formatNumber(summary[row.key as keyof SummaryResponse]?.[c.key], locale)}</td>
                   ))}
                 </tr>
               ))}
             </tbody>
           </Table>
-        )}
+        ) : null}
       </Card.Body>
     </Card>
   );
