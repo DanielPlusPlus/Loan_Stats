@@ -4,7 +4,7 @@ import numpy as np
 
 
 class DataController:
-    PAGE_LIMIT = 15
+    PAGE_LIMIT = 10
 
     __BOOL_LABELS: Dict[str, Dict[bool, str]] = {
         "en": {True: "Yes", False: "No"},
@@ -21,7 +21,7 @@ class DataController:
             "income": "Income",
             "loan_amount": "Loan amount",
             "loan_approved": "Loan approved",
-            "name": "Name",
+            "name": "Name and Surname",
             "points": "Points",
             "years_employed": "Years employed",
             "dataset": "Dataset",
@@ -32,7 +32,7 @@ class DataController:
             "income": "Dochód",
             "loan_amount": "Kwota pożyczki",
             "loan_approved": "Pożyczka zatwierdzona",
-            "name": "Imię",
+            "name": "Imię i nazwisko",
             "points": "Punkty",
             "years_employed": "Lata zatrudnienia",
             "dataset": "Zbiór danych",
@@ -43,7 +43,7 @@ class DataController:
             "income": "Einkommen",
             "loan_amount": "Darlehensbetrag",
             "loan_approved": "Darlehen genehmigt",
-            "name": "Name",
+            "name": "Name und Nachname",
             "points": "Punkte",
             "years_employed": "Beschäftigungsjahre",
             "dataset": "Datensatz",
@@ -54,7 +54,7 @@ class DataController:
             "income": "收入",
             "loan_amount": "贷款金额",
             "loan_approved": "贷款已批准",
-            "name": "姓名",
+            "name": "姓名和姓氏",
             "points": "积分",
             "years_employed": "就业年限",
             "dataset": "数据集",
@@ -65,7 +65,7 @@ class DataController:
             "income": "소득",
             "loan_amount": "대출 금액",
             "loan_approved": "대출 승인됨",
-            "name": "이름",
+            "name": "이름과 성",
             "points": "포인트",
             "years_employed": "근속 연수",
             "dataset": "데이터셋",

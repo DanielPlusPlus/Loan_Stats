@@ -13,6 +13,14 @@ import api from '../services/api';
 
 import { extractErrorMessage } from '../utils/errors';
 
+const NUMERIC_COLUMNS = [
+  { key: 'credit_score', labelKey: 'data_col_credit_score', fallback: 'Credit Rating' },
+  { key: 'income', labelKey: 'data_col_income', fallback: 'Income' },
+  { key: 'loan_amount', labelKey: 'data_col_loan_amount', fallback: 'Loan amount' },
+  { key: 'points', labelKey: 'data_col_points', fallback: 'Points' },
+  { key: 'years_employed', labelKey: 'data_col_years_employed', fallback: 'Years employed' },
+];
+
 const ChernoffFacesTab = () => {
   const { language, t } = useLanguage();
 
@@ -34,13 +42,18 @@ const ChernoffFacesTab = () => {
   const [showLegendModal, setShowLegendModal] = useState(false);
   const [showFacesModal, setShowFacesModal] = useState(false);
   const [showQdModal, setShowQdModal] = useState(false);
+  const [selectedColumns, setSelectedColumns] = useState<Set<string>>(
+    new Set(NUMERIC_COLUMNS.map((c) => c.key))
+  );
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
 
   const fetchChernoffFaces = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      const columns = Array.from(selectedColumns).join(',');
       const response = await api.get('/chernoff-faces', {
-        params: { language, mode, face: face !== 'all' ? face : undefined },
+        params: { language, mode, face: face !== 'all' ? face : undefined, columns },
         responseType: 'blob',
       });
       const url = URL.createObjectURL(response.data);
@@ -51,7 +64,7 @@ const ChernoffFacesTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [language, mode, face, t]);
+  }, [language, mode, face, selectedColumns, t]);
 
   const fetchChernoffLegend = useCallback(async () => {
     setLegendLoading(true);
@@ -75,7 +88,13 @@ const ChernoffFacesTab = () => {
     setQdLoading(true);
     setQdError(null);
     try {
-      const params: Record<string, string | boolean> = { language, mode, compare: qdCompare };
+      const columns = Array.from(selectedColumns).join(',');
+      const params: Record<string, string | boolean> = {
+        language,
+        mode,
+        compare: qdCompare,
+        columns,
+      };
       if (face !== 'all') params.column = face;
       const res = await api.get('/quantiles-distance', { params, responseType: 'blob' });
       const url = URL.createObjectURL(res.data);
@@ -86,7 +105,7 @@ const ChernoffFacesTab = () => {
     } finally {
       setQdLoading(false);
     }
-  }, [language, mode, face, qdCompare, t]);
+  }, [language, mode, face, qdCompare, selectedColumns, t]);
 
   useEffect(() => {
     void fetchChernoffFaces();
@@ -184,6 +203,57 @@ const ChernoffFacesTab = () => {
               >
                 {t('chernoff_refresh', 'Odśwież')}
               </Button>
+
+              <div style={{ position: 'relative' }}>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={() => setShowColumnPicker(!showColumnPicker)}
+                  style={{ minWidth: '200px' }}
+                >
+                  {t('data_select_columns', 'Select columns')} ({selectedColumns.size})
+                </Button>
+                {showColumnPicker && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '4px',
+                      minWidth: '250px',
+                      maxHeight: '250px',
+                      overflowY: 'auto',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '4px',
+                      padding: '8px',
+                      backgroundColor: '#fff',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                    }}
+                  >
+                    {NUMERIC_COLUMNS.map((col) => (
+                      <Form.Check
+                        key={col.key}
+                        type="checkbox"
+                        id={`chernoff-col-${col.key}`}
+                        label={t(col.labelKey, col.fallback)}
+                        checked={selectedColumns.has(col.key)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const newSet = new Set(selectedColumns);
+                          if (e.currentTarget.checked) {
+                            newSet.add(col.key);
+                          } else {
+                            newSet.delete(col.key);
+                          }
+                          setSelectedColumns(newSet);
+                        }}
+                        className="mb-1"
+                        style={{ cursor: 'pointer' }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <Form.Check
                 type="switch"

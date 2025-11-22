@@ -38,6 +38,11 @@ def quantiles_distance():
         required: false
         default: false
         description: When true, overlays Normal vs Prognosis distances
+      - name: columns
+        in: query
+        type: string
+        required: false
+        description: Comma-separated list of columns to display (currently ignored).
     responses:
       200:
         description: A PNG image of the chart.

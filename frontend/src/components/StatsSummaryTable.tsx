@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Alert from 'react-bootstrap/Alert';
+import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
+import Form from 'react-bootstrap/Form';
 import Spinner from 'react-bootstrap/Spinner';
 import Table from 'react-bootstrap/Table';
 import useLanguage from '../hooks/useLanguage';
@@ -61,6 +63,10 @@ const StatsSummaryTable = ({ mode }: { mode: 'normal' | 'prognosis' | 'merged' }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
+  const [selectedColumns, setSelectedColumns] = useState<Set<string>>(
+    new Set(NUMERIC_COLUMNS.map((c) => c.key))
+  );
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
 
   const locale = useMemo(() => DEFAULT_LOCALE_MAP[language] ?? 'pl-PL', [language]);
 
@@ -87,7 +93,61 @@ const StatsSummaryTable = ({ mode }: { mode: 'normal' | 'prognosis' | 'merged' }
 
   return (
     <Card>
-      <Card.Header>{t('ui_subtab_tables', 'Tabele')}</Card.Header>
+      <Card.Header>
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+          <span>{t('ui_subtab_tables', 'Tabele')}</span>
+          <div style={{ position: 'relative' }}>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={() => setShowColumnPicker(!showColumnPicker)}
+              style={{ minWidth: '200px' }}
+            >
+              {t('data_select_columns', 'Select columns')} ({selectedColumns.size})
+            </Button>
+            {showColumnPicker && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '4px',
+                  minWidth: '250px',
+                  maxHeight: '250px',
+                  overflowY: 'auto',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '4px',
+                  padding: '8px',
+                  backgroundColor: '#fff',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                  zIndex: 1000,
+                }}
+              >
+                {NUMERIC_COLUMNS.map((col) => (
+                  <Form.Check
+                    key={col.key}
+                    type="checkbox"
+                    id={`col-summary-${col.key}`}
+                    label={t(col.labelKey, col.fallback)}
+                    checked={selectedColumns.has(col.key)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const newSet = new Set(selectedColumns);
+                      if (e.currentTarget.checked) {
+                        newSet.add(col.key);
+                      } else {
+                        newSet.delete(col.key);
+                      }
+                      setSelectedColumns(newSet);
+                    }}
+                    className="mb-1"
+                    style={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </Card.Header>
       <Card.Body>
         {loading ? (
           <div className="d-flex align-items-center">
@@ -103,7 +163,7 @@ const StatsSummaryTable = ({ mode }: { mode: 'normal' | 'prognosis' | 'merged' }
             <thead>
               <tr>
                 <th></th>
-                {NUMERIC_COLUMNS.map((c) => (
+                {NUMERIC_COLUMNS.filter((c) => selectedColumns.has(c.key)).map((c) => (
                   <th key={c.key}>{t(c.labelKey, c.fallback)}</th>
                 ))}
               </tr>
@@ -112,8 +172,10 @@ const StatsSummaryTable = ({ mode }: { mode: 'normal' | 'prognosis' | 'merged' }
               {METRICS.map((row) => (
                 <tr key={row.key}>
                   <th scope="row">{t(row.labelKey, row.fallback)}</th>
-                  {NUMERIC_COLUMNS.map((c) => (
-                    <td key={c.key}>{formatNumber(summary[row.key as keyof SummaryResponse]?.[c.key], locale)}</td>
+                  {NUMERIC_COLUMNS.filter((c) => selectedColumns.has(c.key)).map((c) => (
+                    <td key={c.key}>
+                      {formatNumber(summary[row.key as keyof SummaryResponse]?.[c.key], locale)}
+                    </td>
                   ))}
                 </tr>
               ))}

@@ -1,4 +1,5 @@
 {
+  "data_select_columns": "Select columns",
   "chart_legend_mode_normal": "Normal",
   "chart_legend_mode_prognosis": "Prognosis",
   "chart_label_points": "Points",

@@ -21,6 +21,22 @@ def get_chernoff_faces() -> Any:
         default: en
         enum: ['en', 'de', 'pl', 'zh', 'ko']
         description: The language for the legend.
+      - name: mode
+        in: query
+        type: string
+        required: false
+        default: normal
+        description: Dataset mode (normal, prognosis, or merged).
+      - name: face
+        in: query
+        type: string
+        required: false
+        description: Single face attribute to display (credit_score, income, loan_amount, points, years_employed).
+      - name: columns
+        in: query
+        type: string
+        required: false
+        description: Comma-separated list of columns to display (e.g., 'credit_score,income,loan_amount').
     responses:
       200:
         description: A PNG image of Chernoff faces.
@@ -39,10 +55,11 @@ def get_chernoff_faces() -> Any:
         return err, code
     mode = request.args.get('mode', 'normal')
     face = request.args.get('face')
+    columns = request.args.get('columns')
 
     language = language if isinstance(language, str) else "en"
 
-    response = ChernoffControllerInstance.generate_chernoff_faces(language, mode=mode, single_face=face)
+    response = ChernoffControllerInstance.generate_chernoff_faces(language, mode=mode, single_face=face, selected_columns=columns)
 
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'

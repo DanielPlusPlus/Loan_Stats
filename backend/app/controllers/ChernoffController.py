@@ -35,7 +35,7 @@ class ChernoffController:
         plt.close(fig)
         return buf.getvalue()
 
-    def generate_chernoff_faces(self, language: str = "en", mode: str = 'normal', single_face: Optional[str] = None):
+    def generate_chernoff_faces(self, language: str = "en", mode: str = 'normal', single_face: Optional[str] = None, selected_columns: Optional[str] = None):
         plt.close('all')
         data = self.__get_data(mode)
 
@@ -45,7 +45,16 @@ class ChernoffController:
             ax.set_axis_off()
             return Response(self.__fig_to_bytes(fig), mimetype='image/png')
 
-        cols = ["credit_score", "income", "loan_amount", "points", "years_employed"]
+        all_cols = ["credit_score", "income", "loan_amount", "points", "years_employed"]
+
+        if selected_columns:
+            selected_list = [col.strip() for col in selected_columns.split(',')]
+            cols = [col for col in all_cols if col in selected_list]
+        else:
+            cols = all_cols
+
+        if not cols:
+            cols = all_cols
 
         FontControllerInstance.set_font_for_language(language)
 
@@ -57,7 +66,8 @@ class ChernoffController:
             axes = [axes]
             cols = [single_face]
         else:
-            fig, axes = plt.subplots(1, 5, figsize=(24, 6))
+            num_cols = len(cols)
+            fig, axes = plt.subplots(1, num_cols, figsize=(4 * num_cols, 6))
 
         for idx, col in enumerate(cols):
             q1 = data[col].quantile(0.25)

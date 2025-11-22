@@ -1,4 +1,5 @@
 {
+  "data_select_columns": "Spalten auswählen",
   "chart_label_quartile_q1": "Quartil Q1",
   "chart_label_quartile_q2": "Quartil Q2 (Median)",
   "chart_label_quartile_q3": "Quartil Q3",

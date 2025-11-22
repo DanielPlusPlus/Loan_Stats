@@ -865,7 +865,7 @@ class ChartsController:
 
         col = request.args.get('column', None) if request else None
         compare_flag = str(request.args.get('compare', '0')).lower() in ('1', 'true', 'yes') if request else False
-
+        columns_param = request.args.get('columns', None) if request else None
 
         def distances_for(series: pd.Series):
             s = pd.to_numeric(series, errors='coerce').dropna()
@@ -895,7 +895,13 @@ class ChartsController:
 
         data = self.__get_data()
         all_cols = ['income', 'loan_amount', 'credit_score', 'years_employed', 'points']
-        available_cols = [c for c in all_cols if c in data.columns]
+
+        # Filter columns based on columns parameter
+        if columns_param:
+            selected_list = [col_name.strip() for col_name in columns_param.split(',')]
+            available_cols = [c for c in all_cols if c in selected_list and c in data.columns]
+        else:
+            available_cols = [c for c in all_cols if c in data.columns]
 
         if col is None:
             if compare_flag:
@@ -904,7 +910,10 @@ class ChartsController:
                 if normal_df is None or prog_df is None:
                     raise ValueError("Data not available for comparison")
 
-                fig, axes = plt.subplots(1, 5, figsize=(20, 4))
+                num_cols = len(available_cols) if available_cols else 5
+                fig, axes = plt.subplots(1, num_cols, figsize=(4 * num_cols, 4))
+                if num_cols == 1:
+                    axes = [axes]
                 x = np.arange(len(q_labels))
                 width = 0.35
 
@@ -932,15 +941,16 @@ class ChartsController:
                     ax.set_ylabel(LanguagesControllerInstance.get_translation(language, 'chart_label_distance_from_mean', 'Absolute distance from mean'), fontsize=9)
                     ax.tick_params(labelsize=8)
 
-                for idx in range(len(available_cols), 5):
-                    axes[idx].axis('off')
                 fig.suptitle(LanguagesControllerInstance.get_translation(language, 'chart_title_quantiles_distance', 'Distance of Quartiles from Mean'), fontsize=14, fontweight='bold')
                 fig.legend([LanguagesControllerInstance.get_translation(language, 'chart_legend_mode_normal', 'Normal'), LanguagesControllerInstance.get_translation(language, 'chart_legend_mode_prognosis', 'Prognosis')], loc='upper left', bbox_to_anchor=(0.02, 1.0), ncol=2, fontsize=10, frameon=False)
                 plt.tight_layout()
                 plt.subplots_adjust(wspace=0.4, top=0.88)
                 return Response(self.__fig_to_bytes(fig), mimetype='image/png')
             else:
-                fig, axes = plt.subplots(1, 5, figsize=(20, 4))
+                num_cols = len(available_cols) if available_cols else 5
+                fig, axes = plt.subplots(1, num_cols, figsize=(4 * num_cols, 4))
+                if num_cols == 1:
+                    axes = [axes]
                 for idx, c in enumerate(available_cols):
                     ax = axes[idx]
                     d = distances_for(data[c])
@@ -953,8 +963,6 @@ class ChartsController:
                     ax.set_title(col_label_map.get(c, c.replace('_', ' ').title()), fontsize=11, fontweight='bold')
                     ax.set_ylabel(LanguagesControllerInstance.get_translation(language, 'chart_label_distance_from_mean', 'Absolute distance from mean'), fontsize=9)
                     ax.tick_params(labelsize=8)
-                for idx in range(len(available_cols), 5):
-                    axes[idx].axis('off')
                 fig.suptitle(LanguagesControllerInstance.get_translation(language, 'chart_title_quantiles_distance', 'Distance of Quartiles from Mean'), fontsize=14, fontweight='bold')
                 plt.tight_layout()
                 plt.subplots_adjust(wspace=0.4)

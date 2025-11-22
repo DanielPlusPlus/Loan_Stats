@@ -3,6 +3,7 @@ import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Card from 'react-bootstrap/Card';
+import Form from 'react-bootstrap/Form';
 import Spinner from 'react-bootstrap/Spinner';
 import Table from 'react-bootstrap/Table';
 import useLanguage from '../hooks/useLanguage';
@@ -11,6 +12,14 @@ import api from '../services/api';
 import PrognosisProcessPanel from './PrognosisProcessPanel';
 
 type Row = Loan & { [key: string]: unknown };
+
+const NUMERIC_COLUMNS = [
+  { key: 'credit_score', labelKey: 'data_col_credit_score', fallback: 'Credit Rating' },
+  { key: 'income', labelKey: 'data_col_income', fallback: 'Income' },
+  { key: 'loan_amount', labelKey: 'data_col_loan_amount', fallback: 'Loan amount' },
+  { key: 'points', labelKey: 'data_col_points', fallback: 'Points' },
+  { key: 'years_employed', labelKey: 'data_col_years_employed', fallback: 'Years employed' },
+];
 
 const DEFAULT_LOCALE_MAP = {
   pl: 'pl-PL',
@@ -63,6 +72,10 @@ const DataTab = () => {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [datasetFilter, setDatasetFilter] = useState<'all' | 'normal' | 'prognosis'>('all');
+  const [selectedAttributes, setSelectedAttributes] = useState<Set<string>>(
+    new Set(NUMERIC_COLUMNS.map((c) => c.key))
+  );
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
 
   const locale = useMemo(() => DEFAULT_LOCALE_MAP[language] ?? 'en-US', [language]);
 
@@ -199,6 +212,25 @@ const DataTab = () => {
     return formatCellValue(value, locale, t);
   };
 
+  const getVisibleColumns = (): string[] => {
+    if (loans.length === 0) return [];
+    const allKeys = Object.keys(loans[0]) as string[];
+    const visibleColumns: string[] = [];
+
+    if (allKeys.includes('name')) {
+      visibleColumns.push('name');
+    }
+
+    visibleColumns.push('dataset');
+
+    const selectedInOrder = NUMERIC_COLUMNS.filter((col) => selectedAttributes.has(col.key)).map(
+      (col) => col.key
+    );
+    visibleColumns.push(...selectedInOrder);
+
+    return visibleColumns;
+  };
+
   return (
     <section className="container-fluid px-0">
       <Card>
@@ -231,6 +263,56 @@ const DataTab = () => {
                 {t('ui_mode_merged', 'Połączone')}
               </Button>
             </ButtonGroup>
+            <div style={{ position: 'relative' }}>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={() => setShowColumnPicker(!showColumnPicker)}
+                style={{ minWidth: '200px' }}
+              >
+                {t('data_select_columns', 'Select columns')} ({selectedAttributes.size})
+              </Button>
+              {showColumnPicker && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    marginTop: '4px',
+                    minWidth: '250px',
+                    maxHeight: '250px',
+                    overflowY: 'auto',
+                    border: '1px solid #dee2e6',
+                    borderRadius: '4px',
+                    padding: '8px',
+                    backgroundColor: '#fff',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                    zIndex: 1000,
+                  }}
+                >
+                  {NUMERIC_COLUMNS.map((col) => (
+                    <Form.Check
+                      key={col.key}
+                      type="checkbox"
+                      id={`col-${col.key}`}
+                      label={t(col.labelKey, col.fallback)}
+                      checked={selectedAttributes.has(col.key)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const newSet = new Set(selectedAttributes);
+                        if (e.currentTarget.checked) {
+                          newSet.add(col.key);
+                        } else {
+                          newSet.delete(col.key);
+                        }
+                        setSelectedAttributes(newSet);
+                      }}
+                      className="mb-1"
+                      style={{ cursor: 'pointer' }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </Card.Header>
         <Card.Body>
@@ -250,52 +332,42 @@ const DataTab = () => {
             <thead style={{ background: 'var(--bs-primary)', color: 'white' }}>
               <tr>
                 {loans.length > 0 &&
-                  (Object.keys(loans[0]) as string[])
-                    .filter((k) => k !== 'dataset_code')
-                    .map((key) => {
-                      const sortable = key !== 'dataset';
-                      return (
-                        <th
-                          key={String(key)}
-                          className="text-nowrap"
-                          style={{ cursor: sortable ? 'pointer' : 'default' }}
-                          onClick={sortable ? () => onHeaderClick(key) : undefined}
-                          title={sortable ? t('click_to_sort', 'Kliknij, aby sortować') : undefined}
-                        >
-                          {headerLabels[String(key)] ?? String(key)}
-                          {sortable && sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
-                        </th>
-                      );
-                    })}
+                  getVisibleColumns().map((key) => {
+                    const sortable = key !== 'dataset';
+                    return (
+                      <th
+                        key={String(key)}
+                        className="text-nowrap"
+                        style={{ cursor: sortable ? 'pointer' : 'default' }}
+                        onClick={sortable ? () => onHeaderClick(key) : undefined}
+                        title={sortable ? t('click_to_sort', 'Kliknij, aby sortować') : undefined}
+                      >
+                        {headerLabels[String(key)] ?? String(key)}
+                        {sortable && sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                      </th>
+                    );
+                  })}
               </tr>
             </thead>
             <tbody>
               {tableLoading ? (
                 <tr>
-                  <td
-                    colSpan={loans.length > 0 ? Object.keys(loans[0]).length : 1}
-                    className="text-center py-5"
-                  >
+                  <td colSpan={getVisibleColumns().length} className="text-center py-5">
                     <Spinner animation="border" role="status" />
                   </td>
                 </tr>
               ) : tableError ? (
                 <tr>
-                  <td
-                    colSpan={loans.length > 0 ? Object.keys(loans[0]).length : 1}
-                    className="text-center text-danger"
-                  >
+                  <td colSpan={getVisibleColumns().length} className="text-center text-danger">
                     {tableError}
                   </td>
                 </tr>
               ) : (
                 sortedAndFilteredLoans.map((row, index) => (
                   <tr key={index}>
-                    {Object.entries(row)
-                      .filter(([key]) => key !== 'dataset_code')
-                      .map(([key, value]) => (
-                        <td key={key}>{renderCell(key, value, row)}</td>
-                      ))}
+                    {getVisibleColumns().map((key) => (
+                      <td key={key}>{renderCell(key, (row as any)[key], row)}</td>
+                    ))}
                   </tr>
                 ))
               )}

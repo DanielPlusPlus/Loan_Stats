@@ -1,4 +1,5 @@
 {
+  "data_select_columns": "选择列",
   "chart_label_quartile_q1": "第一四分位 (Q1)",
   "chart_label_quartile_q2": "第二四分位 (Q2，中位数)",
   "chart_label_quartile_q3": "第三四分位 (Q3)",
