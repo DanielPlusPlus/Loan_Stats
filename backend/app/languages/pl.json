@@ -1,6 +1,7 @@
 {
   "data_select_columns": "Wybierz kolumny",
   "chernoff": {
+    "merged_title": "Wizualizacja Scalonej Twarzy",
     "title": "Legenda Twarzy Chernoffa",
     "legend": {
       "title": "Legenda Twarzy Chernoffa",
@@ -12,6 +13,13 @@
     "stats": {
       "avg": "Średnia",
       "closest": "Kwartyl najbliższy średniej"
+    },
+    "merged_features": {
+      "face": "Kształt twarzy",
+      "eyes": "Oczy",
+      "mouth": "Usta",
+      "ears": "Uszy",
+      "nose": "Nos"
     },
     "shapes": {
       "q1": "Q1 (Najbliżej 1. kwartyla): Koło",

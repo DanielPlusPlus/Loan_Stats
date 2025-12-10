@@ -896,7 +896,6 @@ class ChartsController:
         data = self.__get_data()
         all_cols = ['income', 'loan_amount', 'credit_score', 'years_employed', 'points']
 
-        # Filter columns based on columns parameter
         if columns_param:
             selected_list = [col_name.strip() for col_name in columns_param.split(',')]
             available_cols = [c for c in all_cols if c in selected_list and c in data.columns]

@@ -45,6 +45,8 @@
   "ui_language_label": "语言",
   "ui_language_aria_label": "选择语言",
   "chernoff_title": "切尔诺夫人脸",
+  "chernoff_face_all": "全部",
+  "chernoff_face_merged": "合并的面孔",
   "chernoff_refresh": "刷新",
   "chernoff_no_data": "没有可用于生成的数据显示。",
   "chernoff_failed_to_fetch": "获取可视化失败。",

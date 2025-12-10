@@ -6,6 +6,7 @@
   "chart_label_distance_from_mean": "평균으로부터의 절대 거리",
   "chart_title_quantiles_distance": "사분위수의 평균으로부터 거리",
   "chernoff": {
+    "merged_title": "병합된 얼굴 시각화",
     "title": "체르노프 얼굴 범례",
     "legend": {
       "title": "체르노프 얼굴 범례",
@@ -17,6 +18,13 @@
     "stats": {
       "avg": "평균",
       "closest": "평균에 가장 가까운 사분위수"
+    },
+    "merged_features": {
+      "face": "얼굴 모양",
+      "eyes": "눈",
+      "mouth": "입",
+      "ears": "귀",
+      "nose": "코"
     },
     "shapes": {
       "q1": "Q1 (1사분위수에 가장 가까움): 원",

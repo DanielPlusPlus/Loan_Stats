@@ -27,13 +27,17 @@ const ChernoffFacesTab = () => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [legendSrc, setLegendSrc] = useState<string | null>(null);
   const [qdSrc, setQdSrc] = useState<string | null>(null);
+  const [mergedSrc, setMergedSrc] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [legendLoading, setLegendLoading] = useState(false);
   const [qdLoading, setQdLoading] = useState(false);
+  const [mergedLoading, setMergedLoading] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [legendError, setLegendError] = useState<string | null>(null);
   const [qdError, setQdError] = useState<string | null>(null);
+  const [mergedError, setMergedError] = useState<string | null>(null);
 
   const [mode, setMode] = useState<'normal' | 'prognosis' | 'merged'>('normal');
   const [face, setFace] = useState<string>('all');
@@ -42,6 +46,7 @@ const ChernoffFacesTab = () => {
   const [showLegendModal, setShowLegendModal] = useState(false);
   const [showFacesModal, setShowFacesModal] = useState(false);
   const [showQdModal, setShowQdModal] = useState(false);
+  const [showMergedModal, setShowMergedModal] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(
     new Set(NUMERIC_COLUMNS.map((c) => c.key))
   );
@@ -127,6 +132,31 @@ const ChernoffFacesTab = () => {
       if (qdSrc && qdSrc.startsWith('blob:')) URL.revokeObjectURL(qdSrc);
     };
   }, [fetchQuantilesDistance]);
+
+  const fetchMergedFace = useCallback(async () => {
+    setMergedLoading(true);
+    setMergedError(null);
+    try {
+      const response = await api.get('/chernoff-faces', {
+        params: { language, mode, face: 'merged' },
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(response.data);
+      setMergedSrc(url);
+    } catch (e) {
+      setMergedSrc(null);
+      setMergedError(extractErrorMessage(e, t));
+    } finally {
+      setMergedLoading(false);
+    }
+  }, [language, mode, t]);
+
+  useEffect(() => {
+    void fetchMergedFace();
+    return () => {
+      if (mergedSrc && mergedSrc.startsWith('blob:')) URL.revokeObjectURL(mergedSrc);
+    };
+  }, [fetchMergedFace]);
 
   return (
     <section>
@@ -366,6 +396,35 @@ const ChernoffFacesTab = () => {
         </Card.Body>
       </Card>
 
+      <Card className="mt-3">
+        <Card.Header>{t('chernoff_face_merged', 'Połączona twarz')}</Card.Header>
+        <Card.Body
+          className="d-flex align-items-center justify-content-center"
+          style={{ minHeight: 240, cursor: 'pointer' }}
+          onClick={() => setShowMergedModal(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && setShowMergedModal(true)}
+        >
+          {mergedLoading ? (
+            <Spinner animation="border" role="status" />
+          ) : mergedError ? (
+            <Alert variant="danger" className="w-100 text-center">
+              {mergedError}
+            </Alert>
+          ) : mergedSrc ? (
+            <Image
+              src={mergedSrc}
+              alt={t('chernoff_face_merged', 'Połączona twarz')}
+              fluid
+              style={{ maxHeight: '50vh', width: '100%', objectFit: 'contain', cursor: 'pointer' }}
+            />
+          ) : (
+            <span>{t('chernoff_no_data', 'Brak danych do wygenerowania wizualizacji.')}</span>
+          )}
+        </Card.Body>
+      </Card>
+
       <Modal show={showLegendModal} onHide={() => setShowLegendModal(false)} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>{t('chernoff_legend_title', 'Legenda Twarzy Chernoffa')}</Modal.Title>
@@ -414,6 +473,20 @@ const ChernoffFacesTab = () => {
               alt={t('chart_quantiles_distance_label', 'Odległość kwartylów od średniej')}
               fluid
             />
+          ) : null}
+        </Modal.Body>
+      </Modal>
+
+      <Modal show={showMergedModal} onHide={() => setShowMergedModal(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>{t('chernoff_face_merged', 'Połączona twarz')}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body
+          className="d-flex align-items-center justify-content-center"
+          style={{ minHeight: '500px' }}
+        >
+          {mergedSrc ? (
+            <Image src={mergedSrc} alt={t('chernoff_face_merged', 'Połączona twarz')} fluid />
           ) : null}
         </Modal.Body>
       </Modal>

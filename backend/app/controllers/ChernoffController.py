@@ -61,41 +61,77 @@ class ChernoffController:
         chernoff_data = cast(dict, LanguagesControllerInstance.get_translation(language, "chernoff", {}))
         attributes_trans = chernoff_data.get('attributes', {})
 
-        if single_face and single_face in cols:
-            fig, axes = plt.subplots(1, 1, figsize=(6, 6))
-            axes = [axes]
-            cols = [single_face]
-        else:
-            num_cols = len(cols)
-            fig, axes = plt.subplots(1, num_cols, figsize=(4 * num_cols, 6))
-
-        for idx, col in enumerate(cols):
-            q1 = data[col].quantile(0.25)
-            q2 = data[col].quantile(0.50)
-            q3 = data[col].quantile(0.75)
-            mean = data[col].mean()
-
-            distances = {
-                'q1': abs(mean - q1),
-                'q2': abs(mean - q2),
-                'q3': abs(mean - q3)
-            }
-            closest_q = min(distances.keys(), key=lambda k: distances[k])
-
-            ax = axes[idx]
+        if single_face == 'merged':
+            fig, ax = plt.subplots(1, 1, figsize=(8, 8))
             ax.set_xlim(-1.5, 1.5)
             ax.set_ylim(-3.0, 1.8)
             ax.set_aspect('equal')
             ax.axis('off')
 
-            attr_name = attributes_trans.get(col, {}).get('name', col.replace('_', ' ').title())
-            ax.set_title(attr_name, fontsize=14, pad=10, fontweight='bold')
+            features_map = {
+                'face': 'credit_score',
+                'eyes': 'income',
+                'mouth': 'loan_amount',
+                'ears': 'points',
+                'nose': 'years_employed'
+            }
 
-            self.__draw_custom_face(ax, col, closest_q)
+            quartiles = {}
+            means = {}
+            available_features = {}
 
-            self.__add_statistics_box(ax, col, mean, q1, q2, q3, closest_q, chernoff_data)
+            for feature, col_name in features_map.items():
+                if col_name in data.columns:
+                    available_features[feature] = col_name
+                    quartiles[feature] = self.__get_quartile(data[col_name])
+                    means[feature] = data[col_name].mean()
+                else:
+                    quartiles[feature] = 'q2'
+                    means[feature] = 0
 
-            self.__add_attribute_legend(ax, col, chernoff_data)
+            self.__draw_merged_face(ax, quartiles)
+
+            title = chernoff_data.get('merged_title', "Merged Face Visualization")
+            ax.set_title(title, fontsize=16, pad=10, fontweight='bold')
+
+            self.__add_merged_legend(ax, available_features, quartiles, means, chernoff_data)
+
+        else:
+            if single_face and single_face in cols:
+                fig, axes = plt.subplots(1, 1, figsize=(6, 6))
+                axes = [axes]
+                cols = [single_face]
+            else:
+                num_cols = len(cols)
+                fig, axes = plt.subplots(1, num_cols, figsize=(4 * num_cols, 6))
+
+            for idx, col in enumerate(cols):
+                q1 = data[col].quantile(0.25)
+                q2 = data[col].quantile(0.50)
+                q3 = data[col].quantile(0.75)
+                mean = data[col].mean()
+
+                distances = {
+                    'q1': abs(mean - q1),
+                    'q2': abs(mean - q2),
+                    'q3': abs(mean - q3)
+                }
+                closest_q = min(distances.keys(), key=lambda k: distances[k])
+
+                ax = axes[idx]
+                ax.set_xlim(-1.5, 1.5)
+                ax.set_ylim(-3.0, 1.8)
+                ax.set_aspect('equal')
+                ax.axis('off')
+
+                attr_name = attributes_trans.get(col, {}).get('name', col.replace('_', ' ').title())
+                ax.set_title(attr_name, fontsize=14, pad=10, fontweight='bold')
+
+                self.__draw_custom_face(ax, col, closest_q)
+
+                self.__add_statistics_box(ax, col, mean, q1, q2, q3, closest_q, chernoff_data)
+
+                self.__add_attribute_legend(ax, col, chernoff_data)
 
         plt.subplots_adjust(left=0.05, right=0.95, top=0.88, bottom=0.12, wspace=0.4)
 
@@ -252,4 +288,92 @@ class ChernoffController:
         fig.tight_layout(rect=(0.02, 0.02, 0.98, 0.90))
 
         return Response(self.__fig_to_bytes(fig), mimetype='image/png')
+
+    def __get_quartile(self, series):
+        q1 = series.quantile(0.25)
+        q2 = series.quantile(0.50)
+        q3 = series.quantile(0.75)
+        mean = series.mean()
+        distances = {
+            'q1': abs(mean - q1),
+            'q2': abs(mean - q2),
+            'q3': abs(mean - q3)
+        }
+        return min(distances.keys(), key=lambda k: distances[k])
+
+    def __draw_merged_face(self, ax, quartiles):
+        face_color = '#FFE4B5'
+        feature_color = '#000000'
+
+        q_face = quartiles.get('face', 'q2')
+        if q_face == 'q1':
+            ax.add_patch(Circle((0, 0), 1, facecolor=face_color, edgecolor=feature_color, linewidth=2))
+        elif q_face == 'q2':
+            ax.add_patch(Rectangle((-0.8, -0.8), 1.6, 1.6, facecolor=face_color, edgecolor=feature_color, linewidth=2))
+        else:
+            ax.add_patch(Polygon(np.array([[0, 1], [-0.87, -0.5], [0.87, -0.5]]), facecolor=face_color, edgecolor=feature_color, linewidth=2))
+
+        q_eyes = quartiles.get('eyes', 'q2')
+        if q_eyes == 'q1':
+            ax.add_patch(Circle((-0.3, 0.3), 0.15, facecolor='white', edgecolor=feature_color, linewidth=1.5))
+            ax.add_patch(Circle((0.3, 0.3), 0.15, facecolor='white', edgecolor=feature_color, linewidth=1.5))
+            ax.add_patch(Circle((-0.3, 0.3), 0.05, facecolor=feature_color))
+            ax.add_patch(Circle((0.3, 0.3), 0.05, facecolor=feature_color))
+        elif q_eyes == 'q2':
+            ax.add_patch(Rectangle((-0.4, 0.2), 0.2, 0.2, facecolor='white', edgecolor=feature_color, linewidth=1.5))
+            ax.add_patch(Rectangle((0.2, 0.2), 0.2, 0.2, facecolor='white', edgecolor=feature_color, linewidth=1.5))
+            ax.add_patch(Circle((-0.3, 0.3), 0.05, facecolor=feature_color))
+            ax.add_patch(Circle((0.3, 0.3), 0.05, facecolor=feature_color))
+        else:
+            ax.add_patch(Polygon(np.array([[-0.3, 0.45], [-0.45, 0.15], [-0.15, 0.15]]), facecolor='white', edgecolor=feature_color, linewidth=1.5))
+            ax.add_patch(Polygon(np.array([[0.3, 0.45], [0.15, 0.15], [0.45, 0.15]]), facecolor='white', edgecolor=feature_color, linewidth=1.5))
+            ax.add_patch(Circle((-0.3, 0.25), 0.05, facecolor=feature_color))
+            ax.add_patch(Circle((0.3, 0.25), 0.05, facecolor=feature_color))
+
+        q_mouth = quartiles.get('mouth', 'q2')
+        if q_mouth == 'q1':
+            ax.add_patch(Circle((0, -0.4), 0.2, facecolor='white', edgecolor=feature_color, linewidth=1.5))
+        elif q_mouth == 'q2':
+            ax.add_patch(Rectangle((-0.2, -0.55), 0.4, 0.15, facecolor='white', edgecolor=feature_color, linewidth=1.5))
+        else:
+            ax.add_patch(Polygon(np.array([[0, -0.1], [-0.18, -0.35], [0.18, -0.35]]), facecolor='white', edgecolor=feature_color, linewidth=1.5))
+
+        q_ears = quartiles.get('ears', 'q2')
+        if q_ears == 'q1':
+            ax.add_patch(Circle((-1.15, 0), 0.2, facecolor=face_color, edgecolor=feature_color, linewidth=1.5))
+            ax.add_patch(Circle((1.15, 0), 0.2, facecolor=face_color, edgecolor=feature_color, linewidth=1.5))
+        elif q_ears == 'q2':
+            ax.add_patch(Rectangle((-1.1, -0.15), 0.25, 0.3, facecolor=face_color, edgecolor=feature_color, linewidth=1.5))
+            ax.add_patch(Rectangle((0.85, -0.15), 0.25, 0.3, facecolor=face_color, edgecolor=feature_color, linewidth=1.5))
+        else:
+            ax.add_patch(Polygon(np.array([[-1.05, 0.2], [-1.25, -0.2], [-0.85, -0.2]]), facecolor=face_color, edgecolor=feature_color, linewidth=1.5))
+            ax.add_patch(Polygon(np.array([[1.05, 0.2], [0.85, -0.2], [1.25, -0.2]]), facecolor=face_color, edgecolor=feature_color, linewidth=1.5))
+
+        q_nose = quartiles.get('nose', 'q2')
+        if q_nose == 'q1':
+            ax.add_patch(Circle((0, 0), 0.2, facecolor=face_color, edgecolor=feature_color, linewidth=1.5))
+        elif q_nose == 'q2':
+            ax.add_patch(Rectangle((-0.15, -0.15), 0.3, 0.3, facecolor=face_color, edgecolor=feature_color, linewidth=1.5))
+        else:
+            ax.add_patch(Polygon(np.array([[0, 0.2], [-0.2, -0.15], [0.2, -0.15]]), facecolor=face_color, edgecolor=feature_color, linewidth=1.5))
+
+    def __add_merged_legend(self, ax, available_features, quartiles, means, chernoff_data):
+        attributes_trans = chernoff_data.get('attributes', {})
+        merged_features_trans = chernoff_data.get('merged_features', {})
+        stats_trans = chernoff_data.get('stats', {})
+        avg_label = stats_trans.get('avg', 'Avg')
+
+        legend_text = []
+        for feature, col_name in available_features.items():
+            attr_name = attributes_trans.get(col_name, {}).get('name', col_name.replace('_', ' ').title())
+            q_val = quartiles.get(feature)
+            mean_val = means.get(feature)
+
+            feature_label = merged_features_trans.get(feature, feature.title())
+
+            legend_text.append(f"{feature_label}: {attr_name} ({avg_label}: {mean_val:.1f}, {q_val.upper()})")
+
+        ax.text(0, -2.0, '\n'.join(legend_text), ha='center', va='top', fontsize=10,
+               bbox=dict(boxstyle='round,pad=0.6', facecolor='lightyellow', edgecolor='black', linewidth=1.5))
+
 

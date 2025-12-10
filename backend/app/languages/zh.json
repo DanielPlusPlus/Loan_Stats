@@ -6,6 +6,7 @@
   "chart_label_distance_from_mean": "与均值的绝对距离",
   "chart_title_quantiles_distance": "四分位数与均值的距离",
   "chernoff": {
+    "merged_title": "合并面孔可视化",
     "title": "切尔诺夫脸图例",
     "legend": {
       "title": "切尔诺夫脸谱图例",
@@ -15,8 +16,15 @@
       "attributes_label": "属性"
     },
     "stats": {
-      "avg": "平均",
+      "avg": "平均值",
       "closest": "最接近平均值的四分位数"
+    },
+    "merged_features": {
+      "face": "脸型",
+      "eyes": "眼睛",
+      "mouth": "嘴巴",
+      "ears": "耳朵",
+      "nose": "鼻子"
     },
     "shapes": {
       "q1": "Q1 (最接近第一四分位数): 圆形",

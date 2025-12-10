@@ -5,6 +5,7 @@
   "chart_label_points": "Points",
   "chart_title_quantiles_distance": "Distance of Quartiles from Mean",
   "chernoff": {
+    "merged_title": "Merged Face Visualization",
     "title": "Chernoff Face Legend",
     "legend": {
       "title": "Chernoff Faces Legend",
@@ -16,6 +17,13 @@
     "stats": {
       "avg": "Average",
       "closest": "Quartile closest to Average"
+    },
+    "merged_features": {
+      "face": "Face Shape",
+      "eyes": "Eyes",
+      "mouth": "Mouth",
+      "ears": "Ears",
+      "nose": "Nose"
     },
     "shapes": {
       "q1": "Q1 (Closest to 1st Quartile): Circle",

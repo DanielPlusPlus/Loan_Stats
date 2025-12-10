@@ -44,6 +44,7 @@
   "ui_language_aria_label": "Sprache auswählen",
   "chernoff_title": "Chernoff-Gesichter",
   "chernoff_face_all": "Alle",
+  "chernoff_face_merged": "Verschmolzenes Gesicht",
   "chernoff_refresh": "Aktualisieren",
   "chernoff_no_data": "Keine Daten zur Darstellung.",
   "chernoff_failed_to_fetch": "Visualisierung konnte nicht abgerufen werden.",

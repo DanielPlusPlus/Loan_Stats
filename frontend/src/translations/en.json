@@ -46,6 +46,7 @@
   "ui_language_aria_label": "Select language",
   "chernoff_title": "Chernoff Faces",
   "chernoff_face_all": "All",
+  "chernoff_face_merged": "Merged Face",
   "chernoff_refresh": "Refresh",
   "chernoff_no_data": "No data to render.",
   "chernoff_failed_to_fetch": "Failed to fetch visualization.",

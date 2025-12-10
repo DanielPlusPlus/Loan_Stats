@@ -46,6 +46,7 @@
   "ui_language_aria_label": "Wybierz język",
   "chernoff_title": "Twarze Chernoffa",
   "chernoff_face_all": "Wszystkie",
+  "chernoff_face_merged": "Połączona twarz",
   "chernoff_refresh": "Odśwież",
   "chernoff_no_data": "Brak danych do wygenerowania wizualizacji.",
   "chernoff_failed_to_fetch": "Nie udało się pobrać wizualizacji.",
